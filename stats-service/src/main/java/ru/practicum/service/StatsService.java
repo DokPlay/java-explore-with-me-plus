@@ -20,10 +20,9 @@ public class StatsService {
     private final StatsMapper statsMapper;
     
     @Transactional
-    public EndpointHitDto saveHit(EndpointHitDto endpointHitDto) {
+    public void saveHit(EndpointHitDto endpointHitDto) {
         EndpointHit endpointHit = statsMapper.toEntity(endpointHitDto);
-        EndpointHit savedHit = statsRepository.save(endpointHit);
-        return statsMapper.toDto(savedHit);
+        statsRepository.save(endpointHit);
     }
     
     public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, 
