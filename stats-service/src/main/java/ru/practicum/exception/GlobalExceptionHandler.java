@@ -30,6 +30,13 @@ public class GlobalExceptionHandler {
         return Map.of("error", ex.getMessage());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.warn("Illegal argument: {}", ex.getMessage());
+        return Map.of("error", ex.getMessage());
+    }
+
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleNotFoundException(NotFoundException ex) {
