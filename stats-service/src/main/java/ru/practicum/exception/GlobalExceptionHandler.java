@@ -107,9 +107,7 @@ public class GlobalExceptionHandler {
         List<String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> String.format("%s: %s", error.getField(), error.getDefaultMessage()))
                 .collect(Collectors.toList());
-        
         log.warn("Validation errors: {}", errors);
-        
         return Map.of(
             "errors", errors,
             "message", "Validation failed",
@@ -128,7 +126,6 @@ public class GlobalExceptionHandler {
                 .map(violation -> String.format("%s: %s",
                     violation.getPropertyPath(), violation.getMessage()))
                 .collect(Collectors.toList());
-        
         log.warn("Constraint violations: {}", errors);
 
         return Map.of(
