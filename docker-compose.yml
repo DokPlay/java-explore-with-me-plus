@@ -8,8 +8,8 @@ services:
       - stats-db
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://stats-db:5432/stats
-      SPRING_DATASOURCE_USERNAME: stats
-      SPRING_DATASOURCE_PASSWORD: stats
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
 
   stats-db:
     image: postgres:16.1
@@ -18,8 +18,8 @@ services:
       - "5433:5432"
     environment:
       POSTGRES_DB: stats
-      POSTGRES_USER: stats
-      POSTGRES_PASSWORD: stats
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
 
   ewm-service:
     image: eclipse-temurin:21-jre
