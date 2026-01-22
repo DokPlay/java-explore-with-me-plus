@@ -19,7 +19,6 @@ import java.util.List;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@RequestMapping
 public class StatsController {
     
     private final StatsService statsService;
@@ -31,20 +30,20 @@ public class StatsController {
                 endpointHitDto.getApp(), endpointHitDto.getUri(), endpointHitDto.getIp());
         statsService.saveHit(endpointHitDto);
     }
-    
+
     @GetMapping("/stats")
     public List<ViewStatsDto> getStats(
-            @RequestParam @NotNull @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
-            @RequestParam @NotNull @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
-            @RequestParam(required = false) List<String> uris,
-            @RequestParam(defaultValue = "false") Boolean unique) {
-        
+            @RequestParam("start") @NotNull @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
+            @RequestParam("end") @NotNull @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
+            @RequestParam(value = "uris", required = false) List<String> uris,
+            @RequestParam(value = "unique", defaultValue = "false") Boolean unique) {
+
         log.info("GET /stats: start={}, end={}, uris={}, unique={}", start, end, uris, unique);
-        
+
         if (start.isAfter(end)) {
             throw new IllegalArgumentException("Start date must be before end date");
         }
-        
+
         return statsService.getStats(start, end, uris, unique);
     }
 }
