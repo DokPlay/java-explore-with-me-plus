@@ -1,34 +1,32 @@
 package ru.practicum.server.model;
 
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "endpoint_hits")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class EndpointHit {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    
+    @Column(nullable = false)
     private String app;
+    
+    @Column(nullable = false)
     private String uri;
+    
+    @Column(nullable = false)
     private String ip;
-
+    
+    @Column(nullable = false)
     private LocalDateTime timestamp;
-
-    public EndpointHit() {
-    }
-
-    public EndpointHit(String app, String uri, String ip, LocalDateTime timestamp) {
-        this.app = app;
-        this.uri = uri;
-        this.ip = ip;
-        this.timestamp = timestamp;
-    }
-
-    public Long getId() {
-        return id;
-    }
 }
