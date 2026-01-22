@@ -8,6 +8,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.dto.DateTimeFormatConstants;
 import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.ViewStatsDto;
 import ru.practicum.server.service.StatsService;
@@ -20,21 +21,24 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 public class StatsController {
-    
+
     private final StatsService statsService;
-    
+
     @PostMapping("/hit")
     @ResponseStatus(HttpStatus.CREATED)
     public void saveHit(@Valid @RequestBody EndpointHitDto endpointHitDto) {
-        log.info("POST /hit: app={}, uri={}, ip={}",
-                endpointHitDto.getApp(), endpointHitDto.getUri(), endpointHitDto.getIp());
+        log.info("POST /hit: app={}, uri={}, ip={}, timestamp={}",
+                endpointHitDto.getApp(), endpointHitDto.getUri(),
+                endpointHitDto.getIp(), endpointHitDto.getTimestamp());
         statsService.saveHit(endpointHitDto);
     }
 
     @GetMapping("/stats")
     public List<ViewStatsDto> getStats(
-            @RequestParam("start") @NotNull @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
-            @RequestParam("end") @NotNull @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
+            @RequestParam("start") @NotNull
+            @DateTimeFormat(pattern = DateTimeFormatConstants.DATE_TIME_PATTERN) LocalDateTime start,
+            @RequestParam("end") @NotNull
+            @DateTimeFormat(pattern = DateTimeFormatConstants.DATE_TIME_PATTERN) LocalDateTime end,
             @RequestParam(value = "uris", required = false) List<String> uris,
             @RequestParam(value = "unique", defaultValue = "false") Boolean unique) {
 
