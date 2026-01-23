@@ -16,21 +16,25 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class StatsServiceImpl implements StatsService {
+
     private final StatsRepository statsRepository;
     private final StatsMapper statsMapper;
+
     @Override
     @Transactional
     public void saveHit(EndpointHitDto endpointHitDto) {
         EndpointHit endpointHit = statsMapper.toEntity(endpointHitDto);
         statsRepository.save(endpointHit);
     }
+
     @Override
-    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end,
-                                       List<String> uris, Boolean unique) {
+    public List<ViewStatsDto> getStats(LocalDateTime start,
+                                       LocalDateTime end,
+                                       List<String> uris,
+                                       Boolean unique) {
         if (Boolean.TRUE.equals(unique)) {
             return statsRepository.findStatsUnique(start, end, uris);
-        } else {
-            return statsRepository.findStats(start, end, uris);
         }
+        return statsRepository.findStats(start, end, uris);
     }
 }
