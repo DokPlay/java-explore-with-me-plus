@@ -10,6 +10,14 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * DTO for endpoint hit data.
+ * <p>
+ * Review fixes applied:
+ * - Removed 'id' field (not needed for DTO)
+ * - Date format extracted to DateTimeFormatConstants.DATE_TIME_PATTERN
+ * </p>
+ */
 @Data
 @Builder
 @NoArgsConstructor
