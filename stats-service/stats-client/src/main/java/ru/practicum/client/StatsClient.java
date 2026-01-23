@@ -43,6 +43,7 @@ public class StatsClient {
         this.restTemplate = restTemplate;
     }
 
+    @SuppressWarnings("unchecked")
     public void hit(EndpointHitDto endpointHitDto) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -69,6 +70,7 @@ public class StatsClient {
      * @param requestDto validated request containing start, end, uris, and unique flag
      * @return list of statistics response DTOs
      */
+    @SuppressWarnings("unchecked")
     public List<StatsResponseDto> getStats(@Valid StatsRequestDto requestDto) {
         Map<String, Object> params = new HashMap<>();
         params.put("start", requestDto.getStart());
