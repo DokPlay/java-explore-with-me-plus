@@ -21,6 +21,26 @@ target/
 *.iml
 *.ipr
 
+### Eclipse ###
+.classpath
+.project
+.settings/
+bin/
+
+### Visual Studio Code ###
+.vscode/
+
+### OS Specific ###
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+### Maven ###
+dependency-reduced-pom.xml
+
+### Secrets ###
+*.env
+
 ### Custom ###
 .gemini/
 **/skills/knowledge-base/

@@ -15,13 +15,38 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * REST client for communicating with the statistics service.
+ * REST-клиент для взаимодействия со Stats Service.
  * <p>
- * Review fixes applied:
- * - Made Spring-managed component via @Component annotation
- * - Server URL injected from configuration via @Value
- * - RestTemplate injected via constructor (Spring DI)
- * </p>
+ * Предоставляет методы для:
+ * <ul>
+ *     <li>Сохранения информации о просмотре эндпоинта ({@link #hit})</li>
+ *     <li>Получения статистики просмотров ({@link #getStats})</li>
+ * </ul>
+ *
+ * <h2>Конфигурация:</h2>
+ * <p>URL Stats Server задаётся через property {@code stats-server.url} в application.properties.</p>
+ *
+ * <h2>Использование в Main Service:</h2>
+ * <pre>{@code
+ * @Autowired
+ * private StatsClient statsClient;
+ *
+ * // Сохранить просмотр
+ * statsClient.hit(EndpointHitDto.builder()
+ *     .app("ewm-main-service")
+ *     .uri("/events/1")
+ *     .ip("192.168.1.1")
+ *     .timestamp(LocalDateTime.now())
+ *     .build());
+ *
+ * // Получить статистику
+ * List<StatsResponseDto> stats = statsClient.getStats(requestDto);
+ * }</pre>
+ *
+ * @author ExploreWithMe Team
+ * @version 1.0
+ * @see ru.practicum.dto.EndpointHitDto
+ * @see ru.practicum.dto.StatsRequestDto
  */
 @Component
 public class StatsClient {
@@ -30,10 +55,10 @@ public class StatsClient {
     private final RestTemplate restTemplate;
 
     /**
-     * Constructor with Spring dependency injection.
+     * Конструктор с внедрением зависимостей Spring.
      *
-     * @param serverUrl    stats server URL from application properties (stats-server.url)
-     * @param restTemplate Spring-managed RestTemplate bean
+     * @param serverUrl    URL Stats Server из конфигурации (stats-server.url)
+     * @param restTemplate Spring-managed RestTemplate бин
      */
     public StatsClient(
             @Value("${stats-server.url}") String serverUrl,
@@ -43,6 +68,14 @@ public class StatsClient {
         this.restTemplate = restTemplate;
     }
 
+    /**
+     * Сохраняет информацию о просмотре эндпоинта.
+     * <p>
+     * Отправляет POST запрос на {@code /hit} endpoint Stats Server.
+     * Не возвращает результат (void), ошибки логируются на стороне вызывающего кода.
+     *
+     * @param endpointHitDto данные о просмотре (app, uri, ip, timestamp)
+     */
     @SuppressWarnings("unchecked")
     public void hit(EndpointHitDto endpointHitDto) {
         HttpHeaders headers = new HttpHeaders();
