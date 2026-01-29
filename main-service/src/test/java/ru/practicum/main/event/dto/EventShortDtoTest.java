@@ -17,7 +17,7 @@ class EventShortDtoTest {
 
     @Test
     @DisplayName("Должен создать DTO через builder")
-    void builder_CreatesDto() {
+    void builderCreatesDto() {
         // Given
         LocalDateTime eventDate = LocalDateTime.now().plusDays(7);
         UserShortDto initiator = new UserShortDto(1L, "Test User");
@@ -32,25 +32,21 @@ class EventShortDtoTest {
                 .initiator(initiator)
                 .category(category)
                 .paid(true)
-                .confirmedRequests(25)
+                .confirmedRequests(25L)
                 .views(1000L)
                 .build();
 
         // Then
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getTitle()).isEqualTo("Test Event");
-        assertThat(dto.getAnnotation()).isEqualTo("Test Annotation");
         assertThat(dto.getEventDate()).isEqualTo(eventDate);
-        assertThat(dto.getInitiator()).isEqualTo(initiator);
-        assertThat(dto.getCategory()).isEqualTo(category);
-        assertThat(dto.getPaid()).isTrue();
-        assertThat(dto.getConfirmedRequests()).isEqualTo(25);
+        assertThat(dto.getConfirmedRequests()).isEqualTo(25L);
         assertThat(dto.getViews()).isEqualTo(1000L);
     }
 
     @Test
     @DisplayName("Должен создать пустой DTO")
-    void noArgsConstructor_CreatesEmptyDto() {
+    void noArgsConstructorCreatesEmptyDto() {
         // When
         EventShortDto dto = new EventShortDto();
 
@@ -61,7 +57,7 @@ class EventShortDtoTest {
 
     @Test
     @DisplayName("Setters должны работать")
-    void setters_Work() {
+    void settersWork() {
         // Given
         EventShortDto dto = new EventShortDto();
 

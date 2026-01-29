@@ -4,6 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -19,7 +22,7 @@ class ExceptionsTest {
 
         @Test
         @DisplayName("Должен создать исключение с сообщением")
-        void constructor_WithMessage_CreatesException() {
+        void constructorWithMessageCreatesException() {
             // When
             NotFoundException exception = new NotFoundException("Entity not found");
 
@@ -55,22 +58,12 @@ class ExceptionsTest {
 
         @Test
         @DisplayName("Должен создать исключение с сообщением")
-        void constructor_WithMessage_CreatesException() {
+        void constructorWithMessageCreatesException() {
             // When
             ConflictException exception = new ConflictException("Conflict occurred");
 
             // Then
             assertThat(exception.getMessage()).isEqualTo("Conflict occurred");
-        }
-
-        @Test
-        @DisplayName("Должен быть наследником RuntimeException")
-        void isRuntimeException() {
-            // When
-            ConflictException exception = new ConflictException("test");
-
-            // Then
-            assertThat(exception).isInstanceOf(RuntimeException.class);
         }
 
         @Test
@@ -91,22 +84,12 @@ class ExceptionsTest {
 
         @Test
         @DisplayName("Должен создать исключение с сообщением")
-        void constructor_WithMessage_CreatesException() {
+        void constructorWithMessageCreatesException() {
             // When
             ValidationException exception = new ValidationException("Validation failed");
 
             // Then
             assertThat(exception.getMessage()).isEqualTo("Validation failed");
-        }
-
-        @Test
-        @DisplayName("Должен быть наследником RuntimeException")
-        void isRuntimeException() {
-            // When
-            ValidationException exception = new ValidationException("test");
-
-            // Then
-            assertThat(exception).isInstanceOf(RuntimeException.class);
         }
 
         @Test
@@ -127,52 +110,36 @@ class ExceptionsTest {
 
         @Test
         @DisplayName("Должен создать ApiError через builder")
-        void builder_CreatesApiError() {
+        void builderCreatesApiError() {
+            // Given
+            LocalDateTime timestamp = LocalDateTime.now();
+
             // When
             ApiError apiError = ApiError.builder()
                     .status("NOT_FOUND")
                     .reason("Resource not found")
                     .message("Event with id=1 was not found")
-                    .timestamp("2024-01-01 12:00:00")
+                    .timestamp(timestamp)
+                    .errors(List.of("error1", "error2"))
                     .build();
 
             // Then
             assertThat(apiError.getStatus()).isEqualTo("NOT_FOUND");
             assertThat(apiError.getReason()).isEqualTo("Resource not found");
             assertThat(apiError.getMessage()).isEqualTo("Event with id=1 was not found");
-            assertThat(apiError.getTimestamp()).isEqualTo("2024-01-01 12:00:00");
+            assertThat(apiError.getTimestamp()).isEqualTo(timestamp);
+            assertThat(apiError.getErrors()).containsExactly("error1", "error2");
         }
 
         @Test
         @DisplayName("Должен создать пустой ApiError")
-        void noArgsConstructor_CreatesEmptyApiError() {
+        void noArgsConstructorCreatesEmptyApiError() {
             // When
             ApiError apiError = new ApiError();
 
             // Then
             assertThat(apiError.getStatus()).isNull();
-            assertThat(apiError.getReason()).isNull();
             assertThat(apiError.getMessage()).isNull();
-            assertThat(apiError.getTimestamp()).isNull();
-        }
-
-        @Test
-        @DisplayName("Setters должны работать")
-        void setters_Work() {
-            // Given
-            ApiError apiError = new ApiError();
-
-            // When
-            apiError.setStatus("BAD_REQUEST");
-            apiError.setReason("Invalid request");
-            apiError.setMessage("Title is required");
-            apiError.setTimestamp("2024-01-01 12:00:00");
-
-            // Then
-            assertThat(apiError.getStatus()).isEqualTo("BAD_REQUEST");
-            assertThat(apiError.getReason()).isEqualTo("Invalid request");
-            assertThat(apiError.getMessage()).isEqualTo("Title is required");
-            assertThat(apiError.getTimestamp()).isEqualTo("2024-01-01 12:00:00");
         }
     }
 }

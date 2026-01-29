@@ -56,15 +56,15 @@ class EventTest {
     }
 
     @Test
-    @DisplayName("Должен создать событие через no-args конструктор")
-    void noArgsConstructor_CreatesEmptyEvent() {
+    @DisplayName("Должен создать событие через no-args конструктор с дефолтным состоянием")
+    void noArgsConstructor_CreatesEventWithDefaultState() {
         // When
         Event event = new Event();
 
         // Then
         assertThat(event.getId()).isNull();
         assertThat(event.getTitle()).isNull();
-        assertThat(event.getState()).isNull();
+        assertThat(event.getState()).isEqualTo(EventState.PENDING);
     }
 
     @Test
@@ -116,9 +116,9 @@ class EventTest {
         Event event = new Event();
 
         // When
-        event.setConfirmedRequests(25);
+        event.setConfirmedRequests(25L);
 
         // Then
-        assertThat(event.getConfirmedRequests()).isEqualTo(25);
+        assertThat(event.getConfirmedRequests()).isEqualTo(25L);
     }
 }

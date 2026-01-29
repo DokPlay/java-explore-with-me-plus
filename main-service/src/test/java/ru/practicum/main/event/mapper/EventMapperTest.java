@@ -43,7 +43,6 @@ class EventMapperTest {
         category.setName("Test Category");
 
         location = new Location();
-        location.setId(1L);
         location.setLat(55.75f);
         location.setLon(37.62f);
 

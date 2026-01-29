@@ -81,7 +81,6 @@ class EventServiceImplTest {
         testCategory.setName("Test Category");
 
         testLocation = new Location();
-        testLocation.setId(1L);
         testLocation.setLat(55.75f);
         testLocation.setLon(37.62f);
 

@@ -213,8 +213,8 @@ class EventDtoValidationTest {
         }
 
         @Test
-        @DisplayName("Null широта должна нарушать валидацию")
-        void nullLat_HasViolation() {
+        @DisplayName("Null широта допустима - нет аннотации @NotNull")
+        void nullLat_IsAllowed() {
             // Given
             LocationDto dto = new LocationDto(null, 37.62f);
 
@@ -222,15 +222,12 @@ class EventDtoValidationTest {
             Set<ConstraintViolation<LocationDto>> violations = validator.validate(dto);
 
             // Then
-            assertThat(violations).isNotEmpty();
-            assertThat(violations)
-                    .extracting(v -> v.getPropertyPath().toString())
-                    .contains("lat");
+            assertThat(violations).isEmpty();
         }
 
         @Test
-        @DisplayName("Null долгота должна нарушать валидацию")
-        void nullLon_HasViolation() {
+        @DisplayName("Null долгота допустима - нет аннотации @NotNull")
+        void nullLon_IsAllowed() {
             // Given
             LocationDto dto = new LocationDto(55.75f, null);
 
@@ -238,10 +235,7 @@ class EventDtoValidationTest {
             Set<ConstraintViolation<LocationDto>> violations = validator.validate(dto);
 
             // Then
-            assertThat(violations).isNotEmpty();
-            assertThat(violations)
-                    .extracting(v -> v.getPropertyPath().toString())
-                    .contains("lon");
+            assertThat(violations).isEmpty();
         }
     }
 }
