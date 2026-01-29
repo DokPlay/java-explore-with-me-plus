@@ -29,6 +29,11 @@
 		<postgresql.version>42.7.5</postgresql.version>
 	</properties>
 
+	<modules>
+		<module>stats-service</module>
+		<module>main-service</module>
+	</modules>
+
 	<build>
 		<pluginManagement>
 			<plugins>

@@ -1,6 +1,7 @@
 services:
   stats-server:
     build: ./stats-service/stats-server
+    image: ewm-stats-server
     container_name: stats-server
     ports:
       - "9090:9090"
@@ -15,13 +16,34 @@ services:
     image: postgres:16.1
     container_name: stats-db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_DB: stats
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
 
   ewm-service:
-    image: eclipse-temurin:21-jre
-    container_name: ewm-service
-    command: ["java", "-version"]
+    build: main-service
+    image: ewm-main-service
+    container_name: ewm-main-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - ewm-db
+      - stats-server
+    environment:
+      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_USER: postgres
+      MAIN_DB_PASSWORD: postgres
+      STATS_SERVER_URL: http://stats-server:9090
+
+  ewm-db:
+    image: postgres:16.1
+    container_name: main-db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: main_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
