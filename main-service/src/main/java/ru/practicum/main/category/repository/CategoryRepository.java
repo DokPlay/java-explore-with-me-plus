@@ -5,13 +5,13 @@ import org.springframework.stereotype.Repository;
 import ru.practicum.main.category.model.Category;
 
 /**
- * Репозиторий для работы с категориями.
+ * Repository for categories.
  */
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     /**
-     * Проверить существование категории по имени.
+     * Check whether a category exists by name.
      */
     boolean existsByName(String name);
 }

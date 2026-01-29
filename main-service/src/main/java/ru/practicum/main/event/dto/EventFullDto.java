@@ -13,7 +13,7 @@ import ru.practicum.main.user.dto.UserShortDto;
 import java.time.LocalDateTime;
 
 /**
- * Полное DTO события.
+ * Full event representation.
  */
 @Getter
 @Setter
@@ -23,85 +23,85 @@ import java.time.LocalDateTime;
 public class EventFullDto {
 
     /**
-     * Идентификатор события.
+     * Identifier.
      */
     private Long id;
 
     /**
-     * Краткое описание.
+     * Short description.
      */
     private String annotation;
 
     /**
-     * Категория события.
+     * Event category.
      */
     private CategoryDto category;
 
     /**
-     * Количество одобренных заявок.
+     * Number of approved requests.
      */
     private Long confirmedRequests;
 
     /**
-     * Дата и время создания.
+     * Creation date and time.
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdOn;
 
     /**
-     * Полное описание.
+     * Full description.
      */
     private String description;
 
     /**
-     * Дата и время проведения.
+     * Event date and time.
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime eventDate;
 
     /**
-     * Инициатор события.
+     * Initiator.
      */
     private UserShortDto initiator;
 
     /**
-     * Координаты места проведения.
+     * Venue coordinates.
      */
     private LocationDto location;
 
     /**
-     * Платное ли событие.
+     * Paid flag.
      */
     private Boolean paid;
 
     /**
-     * Лимит участников.
+     * Participant limit.
      */
     private Integer participantLimit;
 
     /**
-     * Дата и время публикации.
+     * Publication date and time.
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime publishedOn;
 
     /**
-     * Требуется ли модерация заявок.
+     * Request moderation flag.
      */
     private Boolean requestModeration;
 
     /**
-     * Состояние события.
+     * State.
      */
     private EventState state;
 
     /**
-     * Заголовок.
+     * Title.
      */
     private String title;
 
     /**
-     * Количество просмотров.
+     * View count.
      */
     private Long views;
 }

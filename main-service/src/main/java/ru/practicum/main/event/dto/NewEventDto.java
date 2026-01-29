@@ -14,31 +14,9 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * DTO для создания нового события.
+ * DTO for creating an event.
  * <p>
- * Используется в Private API при создании события пользователем.
- * Все обязательные поля отмечены аннотациями валидации.
- *
- * <h2>Обязательные поля:</h2>
- * <ul>
- *     <li>{@code annotation} - краткое описание (20-2000 символов)</li>
- *     <li>{@code category} - ID категории</li>
- *     <li>{@code description} - полное описание (20-7000 символов)</li>
- *     <li>{@code eventDate} - дата проведения (минимум за 2 часа от текущего момента)</li>
- *     <li>{@code location} - координаты места проведения</li>
- *     <li>{@code title} - заголовок (3-120 символов)</li>
- * </ul>
- *
- * <h2>Опциональные поля (с значениями по умолчанию):</h2>
- * <ul>
- *     <li>{@code paid} - платное событие (по умолчанию: false)</li>
- *     <li>{@code participantLimit} - лимит участников (по умолчанию: 0 = без лимита)</li>
- *     <li>{@code requestModeration} - пре-модерация заявок (по умолчанию: true)</li>
- * </ul>
- *
- * @author ExploreWithMe Team
- * @version 1.0
- * @see ru.practicum.main.event.controller.PrivateEventController#createEvent
+ * Used in the Private API; required fields are validated by Bean Validation.
  */
 @Getter
 @Setter
@@ -48,59 +26,59 @@ import java.time.LocalDateTime;
 public class NewEventDto {
 
     /**
-     * Краткое описание события.
+     * Short description.
      */
     @NotBlank(message = "Аннотация не может быть пустой")
     @Size(min = 20, max = 2000, message = "Аннотация должна быть от 20 до 2000 символов")
     private String annotation;
 
     /**
-     * ID категории события.
+     * Category identifier.
      */
     @NotNull(message = "Категория обязательна")
     private Long category;
 
     /**
-     * Полное описание события.
+     * Full description.
      */
     @NotBlank(message = "Описание не может быть пустым")
     @Size(min = 20, max = 7000, message = "Описание должно быть от 20 до 7000 символов")
     private String description;
 
     /**
-     * Дата и время проведения события.
+     * Event date and time.
      */
     @NotNull(message = "Дата события обязательна")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime eventDate;
 
     /**
-     * Координаты места проведения.
+     * Venue coordinates.
      */
     @NotNull(message = "Локация обязательна")
     private LocationDto location;
 
     /**
-     * Флаг платности события.
+     * Paid flag.
      */
     @Builder.Default
     private Boolean paid = false;
 
     /**
-     * Лимит участников (0 = без ограничений).
+     * Participant limit (0 means unlimited).
      */
     @PositiveOrZero(message = "Лимит участников не может быть отрицательным")
     @Builder.Default
     private Integer participantLimit = 0;
 
     /**
-     * Требуется ли пре-модерация заявок.
+     * Request pre-moderation flag.
      */
     @Builder.Default
     private Boolean requestModeration = true;
 
     /**
-     * Заголовок события.
+     * Title.
      */
     @NotBlank(message = "Заголовок не может быть пустым")
     @Size(min = 3, max = 120, message = "Заголовок должен быть от 3 до 120 символов")

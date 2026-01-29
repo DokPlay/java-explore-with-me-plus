@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit тесты для пользовательских исключений.
+ * Unit tests for custom exceptions.
  */
 @DisplayName("Custom Exceptions Tests")
 class ExceptionsTest {
@@ -23,27 +23,27 @@ class ExceptionsTest {
         @Test
         @DisplayName("Должен создать исключение с сообщением")
         void constructorWithMessageCreatesException() {
-            // When
+            // Action
             NotFoundException exception = new NotFoundException("Entity not found");
 
-            // Then
+            // Assert
             assertThat(exception.getMessage()).isEqualTo("Entity not found");
         }
 
         @Test
         @DisplayName("Должен быть наследником RuntimeException")
         void isRuntimeException() {
-            // When
+            // Action
             NotFoundException exception = new NotFoundException("test");
 
-            // Then
+            // Assert
             assertThat(exception).isInstanceOf(RuntimeException.class);
         }
 
         @Test
         @DisplayName("Должен бросаться и перехватываться")
         void canBeThrown() {
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> {
                 throw new NotFoundException("Event with id=1 not found");
             })
@@ -59,17 +59,17 @@ class ExceptionsTest {
         @Test
         @DisplayName("Должен создать исключение с сообщением")
         void constructorWithMessageCreatesException() {
-            // When
+            // Action
             ConflictException exception = new ConflictException("Conflict occurred");
 
-            // Then
+            // Assert
             assertThat(exception.getMessage()).isEqualTo("Conflict occurred");
         }
 
         @Test
         @DisplayName("Должен бросаться и перехватываться")
         void canBeThrown() {
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> {
                 throw new ConflictException("Email already exists");
             })
@@ -85,17 +85,17 @@ class ExceptionsTest {
         @Test
         @DisplayName("Должен создать исключение с сообщением")
         void constructorWithMessageCreatesException() {
-            // When
+            // Action
             ValidationException exception = new ValidationException("Validation failed");
 
-            // Then
+            // Assert
             assertThat(exception.getMessage()).isEqualTo("Validation failed");
         }
 
         @Test
         @DisplayName("Должен бросаться и перехватываться")
         void canBeThrown() {
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> {
                 throw new ValidationException("Invalid date format");
             })
@@ -111,10 +111,10 @@ class ExceptionsTest {
         @Test
         @DisplayName("Должен создать ApiError через builder")
         void builderCreatesApiError() {
-            // Given
+            // Setup
             LocalDateTime timestamp = LocalDateTime.now();
 
-            // When
+            // Action
             ApiError apiError = ApiError.builder()
                     .status("NOT_FOUND")
                     .reason("Resource not found")
@@ -123,7 +123,7 @@ class ExceptionsTest {
                     .errors(List.of("error1", "error2"))
                     .build();
 
-            // Then
+            // Assert
             assertThat(apiError.getStatus()).isEqualTo("NOT_FOUND");
             assertThat(apiError.getReason()).isEqualTo("Resource not found");
             assertThat(apiError.getMessage()).isEqualTo("Event with id=1 was not found");
@@ -134,10 +134,10 @@ class ExceptionsTest {
         @Test
         @DisplayName("Должен создать пустой ApiError")
         void noArgsConstructorCreatesEmptyApiError() {
-            // When
+            // Action
             ApiError apiError = new ApiError();
 
-            // Then
+            // Assert
             assertThat(apiError.getStatus()).isNull();
             assertThat(apiError.getMessage()).isNull();
         }

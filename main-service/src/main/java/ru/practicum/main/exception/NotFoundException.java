@@ -1,28 +1,17 @@
 package ru.practicum.main.exception;
 
 /**
- * Исключение "Ресурс не найден".
+ * Resource-not-found exception.
  * <p>
- * Выбрасывается когда запрашиваемый ресурс не существует в системе.
- * Обрабатывается в {@link ErrorHandler} и возвращает HTTP 404.
- *
- * <h2>Примеры использования:</h2>
- * <ul>
- *     <li>Событие с указанным ID не найдено</li>
- *     <li>Пользователь не существует</li>
- *     <li>Категория не найдена</li>
- * </ul>
- *
- * @author ExploreWithMe Team
- * @version 1.0
- * @see ErrorHandler#handleNotFoundException
+ * Thrown when the requested object is not found.
+ * Handled in {@link ErrorHandler} and returns HTTP 404.
  */
 public class NotFoundException extends RuntimeException {
 
     /**
-     * Создаёт исключение с указанным сообщением.
+     * Creates an exception with the specified message.
      *
-     * @param message описание ненайденного ресурса
+     * @param message description of the missing resource
      */
     public NotFoundException(String message) {
         super(message);

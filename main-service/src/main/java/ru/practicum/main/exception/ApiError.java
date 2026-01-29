@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * DTO ошибки API.
+ * Error response DTO.
  */
 @Getter
 @Setter
@@ -21,27 +21,27 @@ import java.util.List;
 public class ApiError {
 
     /**
-     * Список ошибок (стектрейсы или описания).
+     * List of error messages.
      */
     private List<String> errors;
 
     /**
-     * Сообщение об ошибке.
+     * Short error message.
      */
     private String message;
 
     /**
-     * Общее описание причины ошибки.
+     * General description of the error cause.
      */
     private String reason;
 
     /**
-     * Код статуса HTTP-ответа.
+     * HTTP response status code.
      */
     private String status;
 
     /**
-     * Дата и время ошибки.
+     * Response generation timestamp.
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;

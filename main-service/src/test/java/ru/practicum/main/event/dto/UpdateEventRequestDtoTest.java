@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit тесты для UpdateEventUserRequest и UpdateEventAdminRequest.
+ * Unit tests for {@link UpdateEventUserRequest} and {@link UpdateEventAdminRequest}.
  */
 @DisplayName("UpdateEvent Request DTOs Tests")
 class UpdateEventRequestDtoTest {
@@ -16,11 +16,11 @@ class UpdateEventRequestDtoTest {
     @Test
     @DisplayName("UpdateEventUserRequest - Должен создать DTO через builder")
     void updateUserRequestBuilderCreatesDto() {
-        // Given
+        // Setup
         LocalDateTime eventDate = LocalDateTime.now().plusDays(7);
         LocationDto location = new LocationDto(55.75f, 37.62f);
 
-        // When
+        // Action
         UpdateEventUserRequest dto = UpdateEventUserRequest.builder()
                 .title("Updated Title")
                 .annotation("Updated Annotation that is long enough for validation")
@@ -34,7 +34,7 @@ class UpdateEventRequestDtoTest {
                 .stateAction(UpdateEventUserRequest.StateAction.SEND_TO_REVIEW)
                 .build();
 
-        // Then
+        // Assert
         assertThat(dto.getTitle()).isEqualTo("Updated Title");
         assertThat(dto.getEventDate()).isEqualTo(eventDate);
         assertThat(dto.getCategory()).isEqualTo(2L);
@@ -45,10 +45,10 @@ class UpdateEventRequestDtoTest {
     @Test
     @DisplayName("UpdateEventUserRequest - Должен создать пустой DTO")
     void updateUserRequestNoArgsConstructorCreatesEmptyDto() {
-        // When
+        // Action
         UpdateEventUserRequest dto = new UpdateEventUserRequest();
 
-        // Then
+        // Assert
         assertThat(dto.getTitle()).isNull();
         assertThat(dto.getStateAction()).isNull();
     }
@@ -56,11 +56,11 @@ class UpdateEventRequestDtoTest {
     @Test
     @DisplayName("UpdateEventAdminRequest - Должен создать DTO через builder")
     void updateAdminRequestBuilderCreatesDto() {
-        // Given
+        // Setup
         LocalDateTime eventDate = LocalDateTime.now().plusDays(14);
         LocationDto location = new LocationDto(40.71f, -74.00f);
 
-        // When
+        // Action
         UpdateEventAdminRequest dto = UpdateEventAdminRequest.builder()
                 .title("Admin Updated Title")
                 .eventDate(eventDate)
@@ -70,7 +70,7 @@ class UpdateEventRequestDtoTest {
                 .stateAction(UpdateEventAdminRequest.StateAction.PUBLISH_EVENT)
                 .build();
 
-        // Then
+        // Assert
         assertThat(dto.getTitle()).isEqualTo("Admin Updated Title");
         assertThat(dto.getEventDate()).isEqualTo(eventDate);
         assertThat(dto.getCategory()).isEqualTo(3L);
@@ -81,7 +81,7 @@ class UpdateEventRequestDtoTest {
     @Test
     @DisplayName("StateAction enum значения для User")
     void userStateActionValues() {
-        // When/Then
+        // Action and assert
         assertThat(UpdateEventUserRequest.StateAction.SEND_TO_REVIEW).isNotNull();
         assertThat(UpdateEventUserRequest.StateAction.CANCEL_REVIEW).isNotNull();
         assertThat(UpdateEventUserRequest.StateAction.values()).hasSize(2);
@@ -90,7 +90,7 @@ class UpdateEventRequestDtoTest {
     @Test
     @DisplayName("StateAction enum значения для Admin")
     void adminStateActionValues() {
-        // When/Then
+        // Action and assert
         assertThat(UpdateEventAdminRequest.StateAction.PUBLISH_EVENT).isNotNull();
         assertThat(UpdateEventAdminRequest.StateAction.REJECT_EVENT).isNotNull();
         assertThat(UpdateEventAdminRequest.StateAction.values()).hasSize(2);

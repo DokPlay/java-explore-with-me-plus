@@ -15,7 +15,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Тесты валидации DTO.
+ * DTO validation tests.
  */
 @DisplayName("Event DTO Validation Tests")
 class EventDtoValidationTest {
@@ -35,7 +35,7 @@ class EventDtoValidationTest {
         @Test
         @DisplayName("Валидный DTO не должен иметь нарушений")
         void validDto_NoViolations() {
-            // Given
+            // Setup
             NewEventDto dto = NewEventDto.builder()
                     .title("Valid Title Here")
                     .annotation("This is a valid annotation with at least 20 characters")
@@ -48,17 +48,17 @@ class EventDtoValidationTest {
                     .requestModeration(true)
                     .build();
 
-            // When
+            // Action
             Set<ConstraintViolation<NewEventDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isEmpty();
         }
 
         @Test
         @DisplayName("Пустой заголовок должен нарушать валидацию")
         void blankTitle_HasViolation() {
-            // Given
+            // Setup
             NewEventDto dto = NewEventDto.builder()
                     .title("")
                     .annotation("This is a valid annotation with at least 20 characters")
@@ -68,10 +68,10 @@ class EventDtoValidationTest {
                     .location(new LocationDto(55.75f, 37.62f))
                     .build();
 
-            // When
+            // Action
             Set<ConstraintViolation<NewEventDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isNotEmpty();
             assertThat(violations)
                     .extracting(v -> v.getPropertyPath().toString())
@@ -81,7 +81,7 @@ class EventDtoValidationTest {
         @Test
         @DisplayName("Слишком короткая аннотация должна нарушать валидацию")
         void shortAnnotation_HasViolation() {
-            // Given
+            // Setup
             NewEventDto dto = NewEventDto.builder()
                     .title("Valid Title")
                     .annotation("Short")
@@ -91,10 +91,10 @@ class EventDtoValidationTest {
                     .location(new LocationDto(55.75f, 37.62f))
                     .build();
 
-            // When
+            // Action
             Set<ConstraintViolation<NewEventDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isNotEmpty();
             assertThat(violations)
                     .extracting(v -> v.getPropertyPath().toString())
@@ -104,7 +104,7 @@ class EventDtoValidationTest {
         @Test
         @DisplayName("Null категория должна нарушать валидацию")
         void nullCategory_HasViolation() {
-            // Given
+            // Setup
             NewEventDto dto = NewEventDto.builder()
                     .title("Valid Title")
                     .annotation("This is a valid annotation with at least 20 characters")
@@ -114,10 +114,10 @@ class EventDtoValidationTest {
                     .location(new LocationDto(55.75f, 37.62f))
                     .build();
 
-            // When
+            // Action
             Set<ConstraintViolation<NewEventDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isNotEmpty();
             assertThat(violations)
                     .extracting(v -> v.getPropertyPath().toString())
@@ -127,7 +127,7 @@ class EventDtoValidationTest {
         @Test
         @DisplayName("Null дата события должна нарушать валидацию")
         void nullEventDate_HasViolation() {
-            // Given
+            // Setup
             NewEventDto dto = NewEventDto.builder()
                     .title("Valid Title")
                     .annotation("This is a valid annotation with at least 20 characters")
@@ -137,10 +137,10 @@ class EventDtoValidationTest {
                     .location(new LocationDto(55.75f, 37.62f))
                     .build();
 
-            // When
+            // Action
             Set<ConstraintViolation<NewEventDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isNotEmpty();
             assertThat(violations)
                     .extracting(v -> v.getPropertyPath().toString())
@@ -150,7 +150,7 @@ class EventDtoValidationTest {
         @Test
         @DisplayName("Null локация должна нарушать валидацию")
         void nullLocation_HasViolation() {
-            // Given
+            // Setup
             NewEventDto dto = NewEventDto.builder()
                     .title("Valid Title")
                     .annotation("This is a valid annotation with at least 20 characters")
@@ -160,10 +160,10 @@ class EventDtoValidationTest {
                     .location(null)
                     .build();
 
-            // When
+            // Action
             Set<ConstraintViolation<NewEventDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isNotEmpty();
             assertThat(violations)
                     .extracting(v -> v.getPropertyPath().toString())
@@ -173,8 +173,8 @@ class EventDtoValidationTest {
         @Test
         @DisplayName("Слишком длинный заголовок должен нарушать валидацию")
         void tooLongTitle_HasViolation() {
-            // Given
-            String longTitle = "A".repeat(121); // больше 120 символов
+            // Setup
+            String longTitle = "A".repeat(121); // more than 120 characters
             NewEventDto dto = NewEventDto.builder()
                     .title(longTitle)
                     .annotation("This is a valid annotation with at least 20 characters")
@@ -184,10 +184,10 @@ class EventDtoValidationTest {
                     .location(new LocationDto(55.75f, 37.62f))
                     .build();
 
-            // When
+            // Action
             Set<ConstraintViolation<NewEventDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isNotEmpty();
             assertThat(violations)
                     .extracting(v -> v.getPropertyPath().toString())
@@ -202,39 +202,39 @@ class EventDtoValidationTest {
         @Test
         @DisplayName("Валидная локация не должна иметь нарушений")
         void validLocation_NoViolations() {
-            // Given
+            // Setup
             LocationDto dto = new LocationDto(55.75f, 37.62f);
 
-            // When
+            // Action
             Set<ConstraintViolation<LocationDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isEmpty();
         }
 
         @Test
         @DisplayName("Null широта допустима - нет аннотации @NotNull")
         void nullLat_IsAllowed() {
-            // Given
+            // Setup
             LocationDto dto = new LocationDto(null, 37.62f);
 
-            // When
+            // Action
             Set<ConstraintViolation<LocationDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isEmpty();
         }
 
         @Test
         @DisplayName("Null долгота допустима - нет аннотации @NotNull")
         void nullLon_IsAllowed() {
-            // Given
+            // Setup
             LocationDto dto = new LocationDto(55.75f, null);
 
-            // When
+            // Action
             Set<ConstraintViolation<LocationDto>> violations = validator.validate(dto);
 
-            // Then
+            // Assert
             assertThat(violations).isEmpty();
         }
     }

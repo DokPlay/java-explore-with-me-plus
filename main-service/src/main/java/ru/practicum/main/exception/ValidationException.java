@@ -1,29 +1,17 @@
 package ru.practicum.main.exception;
 
 /**
- * Исключение валидации входных данных.
+ * Business-rule validation exception.
  * <p>
- * Выбрасывается когда входные данные не проходят валидацию бизнес-правил
- * (в отличие от Bean Validation, которая обрабатывается отдельно).
- * Обрабатывается в {@link ErrorHandler} и возвращает HTTP 400.
- *
- * <h2>Примеры использования:</h2>
- * <ul>
- *     <li>Дата события в прошлом или слишком близко к текущему времени</li>
- *     <li>Некорректный диапазон дат (начало после конца)</li>
- *     <li>Неверный формат данных</li>
- * </ul>
- *
- * @author ExploreWithMe Team
- * @version 1.0
- * @see ErrorHandler#handleValidationException
+ * Used to validate rules that are not covered by Bean Validation.
+ * Handled in {@link ErrorHandler} and returns HTTP 400.
  */
 public class ValidationException extends RuntimeException {
 
     /**
-     * Создаёт исключение с указанным сообщением.
+     * Creates an exception with the specified message.
      *
-     * @param message описание ошибки валидации
+     * @param message validation error description
      */
     public ValidationException(String message) {
         super(message);

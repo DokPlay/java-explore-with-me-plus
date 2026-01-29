@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO для координат места проведения события.
+ * DTO for event location coordinates.
  */
 @Getter
 @Setter
@@ -17,12 +17,12 @@ import lombok.Setter;
 public class LocationDto {
 
     /**
-     * Широта.
+     * Latitude.
      */
     private Float lat;
 
     /**
-     * Долгота.
+     * Longitude.
      */
     private Float lon;
 }

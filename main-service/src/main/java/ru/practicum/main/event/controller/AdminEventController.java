@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Административный контроллер для работы с событиями.
+ * Controller for administrative operations on events.
  */
 @RestController
 @RequestMapping("/admin/events")
@@ -33,7 +33,7 @@ public class AdminEventController {
     private final EventService eventService;
 
     /**
-     * Поиск событий.
+     * Returns events matching administrative filters.
      */
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
@@ -53,7 +53,7 @@ public class AdminEventController {
     }
 
     /**
-     * Редактирование данных события и его статуса (отклонение/публикация).
+     * Updates event data and its status (publish/reject).
      */
     @PatchMapping("/{eventId}")
     @ResponseStatus(HttpStatus.OK)

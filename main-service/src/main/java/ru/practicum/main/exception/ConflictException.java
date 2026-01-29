@@ -1,29 +1,17 @@
 package ru.practicum.main.exception;
 
 /**
- * Исключение конфликта (нарушение бизнес-правил).
+ * Business-rule conflict exception.
  * <p>
- * Выбрасывается когда операция нарушает бизнес-правила системы.
- * Обрабатывается в {@link ErrorHandler} и возвращает HTTP 409.
- *
- * <h2>Примеры использования:</h2>
- * <ul>
- *     <li>Попытка изменить опубликованное событие</li>
- *     <li>Публикация события не в статусе PENDING</li>
- *     <li>Отклонение уже опубликованного события</li>
- *     <li>Дублирование уникальных данных</li>
- * </ul>
- *
- * @author ExploreWithMe Team
- * @version 1.0
- * @see ErrorHandler#handleConflictException
+ * Thrown when an operation violates domain rules.
+ * Handled in {@link ErrorHandler} and returns HTTP 409.
  */
 public class ConflictException extends RuntimeException {
 
     /**
-     * Создаёт исключение с указанным сообщением.
+     * Creates an exception with the specified message.
      *
-     * @param message описание конфликта
+     * @param message conflict description
      */
     public ConflictException(String message) {
         super(message);

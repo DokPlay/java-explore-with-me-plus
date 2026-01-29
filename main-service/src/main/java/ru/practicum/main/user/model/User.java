@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Сущность пользователя.
+ * User entity.
  */
 @Entity
 @Table(name = "users")
@@ -25,20 +25,20 @@ import lombok.Setter;
 public class User {
 
     /**
-     * Уникальный идентификатор пользователя.
+     * Unique user identifier.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Имя пользователя.
+     * User name.
      */
     @Column(nullable = false, length = 250)
     private String name;
 
     /**
-     * Email пользователя (уникальный).
+     * User email (unique).
      */
     @Column(nullable = false, unique = true, length = 254)
     private String email;

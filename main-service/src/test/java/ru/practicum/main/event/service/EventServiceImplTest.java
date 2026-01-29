@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit тесты для EventServiceImpl.
+ * Unit tests for {@link EventServiceImpl}.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("EventService Unit Tests")
@@ -128,7 +128,7 @@ class EventServiceImplTest {
                 .build();
     }
 
-    // ==================== Private API Tests ====================
+    // Private API tests
 
     @Nested
     @DisplayName("Private API: getUserEvents")
@@ -137,17 +137,17 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен вернуть список событий пользователя")
         void getUserEvents_ReturnsEventList() {
-            // Given
+            // Setup
             when(userRepository.existsById(1L)).thenReturn(true);
             Page<Event> eventPage = new PageImpl<>(List.of(testEvent));
             when(eventRepository.findAllByInitiatorId(anyLong(), any(Pageable.class)))
                     .thenReturn(eventPage);
             when(eventMapper.toEventShortDtoList(any())).thenReturn(List.of(testEventShortDto));
 
-            // When
+            // Action
             List<EventShortDto> result = eventService.getUserEvents(1L, 0, 10);
 
-            // Then
+            // Assert
             assertThat(result).hasSize(1);
             assertThat(result.get(0).getTitle()).isEqualTo("Test Event");
             verify(eventRepository).findAllByInitiatorId(anyLong(), any(Pageable.class));
@@ -156,10 +156,10 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить NotFoundException если пользователь не найден")
         void getUserEvents_UserNotFound_ThrowsException() {
-            // Given
+            // Setup
             when(userRepository.existsById(999L)).thenReturn(false);
 
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> eventService.getUserEvents(999L, 0, 10))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Пользователь не найден");
@@ -173,7 +173,7 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен создать событие успешно")
         void createEvent_Success() {
-            // Given
+            // Setup
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(categoryRepository.findById(1L)).thenReturn(Optional.of(testCategory));
             when(eventMapper.toEvent(any(NewEventDto.class))).thenReturn(testEvent);
@@ -181,10 +181,10 @@ class EventServiceImplTest {
             when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
             when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
 
-            // When
+            // Action
             EventFullDto result = eventService.createEvent(1L, testNewEventDto);
 
-            // Then
+            // Assert
             assertThat(result).isNotNull();
             assertThat(result.getTitle()).isEqualTo("Test Event");
             verify(eventRepository).save(any(Event.class));
@@ -193,10 +193,10 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить NotFoundException если пользователь не найден")
         void createEvent_UserNotFound_ThrowsException() {
-            // Given
+            // Setup
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> eventService.createEvent(999L, testNewEventDto))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Пользователь не найден");
@@ -205,11 +205,11 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить NotFoundException если категория не найдена")
         void createEvent_CategoryNotFound_ThrowsException() {
-            // Given
+            // Setup
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
 
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> eventService.createEvent(1L, testNewEventDto))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Категория не найдена");
@@ -218,12 +218,12 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить ValidationException если дата события слишком близко")
         void createEvent_EventDateTooSoon_ThrowsException() {
-            // Given
+            // Setup
             testNewEventDto.setEventDate(LocalDateTime.now().plusHours(1));
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(categoryRepository.findById(1L)).thenReturn(Optional.of(testCategory));
 
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> eventService.createEvent(1L, testNewEventDto))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("Дата события должна быть не ранее");
@@ -237,15 +237,15 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен вернуть событие пользователя по ID")
         void getUserEventById_Success() {
-            // Given
+            // Setup
             when(userRepository.existsById(1L)).thenReturn(true);
             when(eventRepository.findByIdAndInitiatorId(1L, 1L)).thenReturn(Optional.of(testEvent));
             when(eventMapper.toEventFullDto(testEvent)).thenReturn(testEventFullDto);
 
-            // When
+            // Action
             EventFullDto result = eventService.getUserEventById(1L, 1L);
 
-            // Then
+            // Assert
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
         }
@@ -253,11 +253,11 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить NotFoundException если событие не найдено")
         void getUserEventById_EventNotFound_ThrowsException() {
-            // Given
+            // Setup
             when(userRepository.existsById(1L)).thenReturn(true);
             when(eventRepository.findByIdAndInitiatorId(999L, 1L)).thenReturn(Optional.empty());
 
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> eventService.getUserEventById(1L, 999L))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Событие не найдено");
@@ -271,7 +271,7 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен обновить событие успешно")
         void updateEventByUser_Success() {
-            // Given
+            // Setup
             UpdateEventUserRequest updateRequest = new UpdateEventUserRequest();
             updateRequest.setTitle("Updated Title");
             updateRequest.setStateAction(UpdateEventUserRequest.StateAction.SEND_TO_REVIEW);
@@ -281,10 +281,10 @@ class EventServiceImplTest {
             when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
             when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
 
-            // When
+            // Action
             EventFullDto result = eventService.updateEventByUser(1L, 1L, updateRequest);
 
-            // Then
+            // Assert
             assertThat(result).isNotNull();
             verify(eventRepository).save(any(Event.class));
         }
@@ -292,7 +292,7 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить ConflictException если событие уже опубликовано")
         void updateEventByUser_EventPublished_ThrowsException() {
-            // Given
+            // Setup
             testEvent.setState(EventState.PUBLISHED);
             UpdateEventUserRequest updateRequest = new UpdateEventUserRequest();
             updateRequest.setTitle("Updated Title");
@@ -300,7 +300,7 @@ class EventServiceImplTest {
             when(userRepository.existsById(1L)).thenReturn(true);
             when(eventRepository.findByIdAndInitiatorId(1L, 1L)).thenReturn(Optional.of(testEvent));
 
-            // When/Then
+                // Action and assert
             assertThatThrownBy(() -> eventService.updateEventByUser(1L, 1L, updateRequest))
                     .isInstanceOf(ConflictException.class)
                     .hasMessageContaining("опубликованное событие");
@@ -309,7 +309,7 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен отменить событие при CANCEL_REVIEW")
         void updateEventByUser_CancelReview_Success() {
-            // Given
+            // Setup
             UpdateEventUserRequest updateRequest = new UpdateEventUserRequest();
             updateRequest.setStateAction(UpdateEventUserRequest.StateAction.CANCEL_REVIEW);
 
@@ -322,15 +322,15 @@ class EventServiceImplTest {
             });
             when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
 
-            // When
+            // Action
             eventService.updateEventByUser(1L, 1L, updateRequest);
 
-            // Then
+            // Assert
             verify(eventRepository).save(any(Event.class));
         }
     }
 
-    // ==================== Admin API Tests ====================
+    // Admin API tests
 
     @Nested
     @DisplayName("Admin API: searchEventsForAdmin")
@@ -339,19 +339,19 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен вернуть список событий по фильтрам")
         void searchEventsForAdmin_ReturnsFilteredEvents() {
-            // Given
+            // Setup
             Page<Event> eventPage = new PageImpl<>(List.of(testEvent));
             when(eventRepository.findEventsForAdmin(any(), any(), any(), any(), any(), any(Pageable.class)))
                     .thenReturn(eventPage);
             when(eventMapper.toEventFullDtoList(any())).thenReturn(List.of(testEventFullDto));
 
-            // When
+            // Action
             List<EventFullDto> result = eventService.searchEventsForAdmin(
                     List.of(1L), List.of(EventState.PENDING), List.of(1L),
                     LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(7),
                     0, 10);
 
-            // Then
+            // Assert
             assertThat(result).hasSize(1);
             verify(eventRepository).findEventsForAdmin(any(), any(), any(), any(), any(), any(Pageable.class));
         }
@@ -359,17 +359,17 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен вернуть пустой список если событий нет")
         void searchEventsForAdmin_NoEvents_ReturnsEmptyList() {
-            // Given
+            // Setup
             Page<Event> emptyPage = new PageImpl<>(List.of());
             when(eventRepository.findEventsForAdmin(any(), any(), any(), any(), any(), any(Pageable.class)))
                     .thenReturn(emptyPage);
             when(eventMapper.toEventFullDtoList(any())).thenReturn(List.of());
 
-            // When
+            // Action
             List<EventFullDto> result = eventService.searchEventsForAdmin(
                     null, null, null, null, null, 0, 10);
 
-            // Then
+            // Assert
             assertThat(result).isEmpty();
         }
     }
@@ -381,7 +381,7 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен опубликовать событие")
         void updateEventByAdmin_PublishEvent_Success() {
-            // Given
+            // Setup
             testEvent.setEventDate(LocalDateTime.now().plusDays(1));
             UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
             updateRequest.setStateAction(UpdateEventAdminRequest.StateAction.PUBLISH_EVENT);
@@ -395,17 +395,17 @@ class EventServiceImplTest {
             });
             when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
 
-            // When
+            // Action
             eventService.updateEventByAdmin(1L, updateRequest);
 
-            // Then
+            // Assert
             verify(eventRepository).save(any(Event.class));
         }
 
         @Test
         @DisplayName("Должен отклонить событие")
         void updateEventByAdmin_RejectEvent_Success() {
-            // Given
+            // Setup
             UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
             updateRequest.setStateAction(UpdateEventAdminRequest.StateAction.REJECT_EVENT);
 
@@ -417,24 +417,24 @@ class EventServiceImplTest {
             });
             when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
 
-            // When
+            // Action
             eventService.updateEventByAdmin(1L, updateRequest);
 
-            // Then
+            // Assert
             verify(eventRepository).save(any(Event.class));
         }
 
         @Test
         @DisplayName("Должен выбросить ConflictException при публикации не PENDING события")
         void updateEventByAdmin_PublishNotPending_ThrowsException() {
-            // Given
+            // Setup
             testEvent.setState(EventState.CANCELED);
             UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
             updateRequest.setStateAction(UpdateEventAdminRequest.StateAction.PUBLISH_EVENT);
 
             when(eventRepository.findById(1L)).thenReturn(Optional.of(testEvent));
 
-            // When/Then
+                // Action and assert
             assertThatThrownBy(() -> eventService.updateEventByAdmin(1L, updateRequest))
                     .isInstanceOf(ConflictException.class)
                     .hasMessageContaining("ожидания");
@@ -443,14 +443,14 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить ConflictException при отклонении опубликованного события")
         void updateEventByAdmin_RejectPublished_ThrowsException() {
-            // Given
+            // Setup
             testEvent.setState(EventState.PUBLISHED);
             UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
             updateRequest.setStateAction(UpdateEventAdminRequest.StateAction.REJECT_EVENT);
 
             when(eventRepository.findById(1L)).thenReturn(Optional.of(testEvent));
 
-            // When/Then
+                // Action and assert
             assertThatThrownBy(() -> eventService.updateEventByAdmin(1L, updateRequest))
                     .isInstanceOf(ConflictException.class)
                     .hasMessageContaining("опубликованное");
@@ -459,18 +459,18 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить NotFoundException если событие не найдено")
         void updateEventByAdmin_EventNotFound_ThrowsException() {
-            // Given
+            // Setup
             UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
             when(eventRepository.findById(999L)).thenReturn(Optional.empty());
 
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> eventService.updateEventByAdmin(999L, updateRequest))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Событие не найдено");
         }
     }
 
-    // ==================== Public API Tests ====================
+    // Public API tests
 
     @Nested
     @DisplayName("Public API: getPublishedEventById")
@@ -479,16 +479,16 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен вернуть опубликованное событие")
         void getPublishedEventById_Success() {
-            // Given
+            // Setup
             testEvent.setState(EventState.PUBLISHED);
             when(eventRepository.findByIdAndState(1L, EventState.PUBLISHED))
                     .thenReturn(Optional.of(testEvent));
             when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
 
-            // When
+            // Action
             EventFullDto result = eventService.getPublishedEventById(1L, mock(jakarta.servlet.http.HttpServletRequest.class));
 
-            // Then
+            // Assert
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
         }
@@ -496,11 +496,11 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить NotFoundException если событие не опубликовано")
         void getPublishedEventById_NotPublished_ThrowsException() {
-            // Given
+            // Setup
             when(eventRepository.findByIdAndState(1L, EventState.PUBLISHED))
                     .thenReturn(Optional.empty());
 
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> eventService.getPublishedEventById(1L,
                     mock(jakarta.servlet.http.HttpServletRequest.class)))
                     .isInstanceOf(NotFoundException.class)
@@ -515,14 +515,14 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен вернуть событие по ID")
         void getEventById_Success() {
-            // Given
+            // Setup
             when(eventRepository.findById(1L)).thenReturn(Optional.of(testEvent));
             when(eventMapper.toEventFullDto(testEvent)).thenReturn(testEventFullDto);
 
-            // When
+            // Action
             EventFullDto result = eventService.getEventById(1L);
 
-            // Then
+            // Assert
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
         }
@@ -530,10 +530,10 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен выбросить NotFoundException если событие не найдено")
         void getEventById_NotFound_ThrowsException() {
-            // Given
+            // Setup
             when(eventRepository.findById(999L)).thenReturn(Optional.empty());
 
-            // When/Then
+            // Action and assert
             assertThatThrownBy(() -> eventService.getEventById(999L))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Событие не найдено");

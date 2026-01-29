@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO категории.
+ * Category DTO.
  */
 @Getter
 @Setter
@@ -19,12 +19,12 @@ import lombok.Setter;
 public class CategoryDto {
 
     /**
-     * Идентификатор категории.
+     * Identifier.
      */
     private Long id;
 
     /**
-     * Название категории.
+     * Name.
      */
     @NotBlank(message = "Название категории обязательно")
     @Size(min = 1, max = 50, message = "Название категории должно быть от 1 до 50 символов")

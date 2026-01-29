@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Краткое DTO пользователя.
+ * Short user representation.
  */
 @Getter
 @Setter
@@ -17,12 +17,12 @@ import lombok.Setter;
 public class UserShortDto {
 
     /**
-     * Идентификатор пользователя.
+     * Identifier.
      */
     private Long id;
 
     /**
-     * Имя пользователя.
+     * Name.
      */
     private String name;
 }
