@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit тесты для модели Category.
+ * Unit tests for the {@link Category} model.
  */
 @DisplayName("Category Model Tests")
 class CategoryTest {
@@ -14,10 +14,10 @@ class CategoryTest {
     @Test
     @DisplayName("Должен создать категорию через конструктор")
     void constructor_CreatesCategory() {
-        // When
+        // Action
         Category category = new Category(1L, "Test Category");
 
-        // Then
+        // Assert
         assertThat(category.getId()).isEqualTo(1L);
         assertThat(category.getName()).isEqualTo("Test Category");
     }
@@ -25,13 +25,13 @@ class CategoryTest {
     @Test
     @DisplayName("Должен создать категорию через builder")
     void builder_CreatesCategory() {
-        // When
+        // Action
         Category category = Category.builder()
                 .id(1L)
                 .name("Builder Category")
                 .build();
 
-        // Then
+        // Assert
         assertThat(category.getId()).isEqualTo(1L);
         assertThat(category.getName()).isEqualTo("Builder Category");
     }
@@ -39,10 +39,10 @@ class CategoryTest {
     @Test
     @DisplayName("Должен создать пустую категорию через no-args конструктор")
     void noArgsConstructor_CreatesEmptyCategory() {
-        // When
+        // Action
         Category category = new Category();
 
-        // Then
+        // Assert
         assertThat(category.getId()).isNull();
         assertThat(category.getName()).isNull();
     }
@@ -50,14 +50,14 @@ class CategoryTest {
     @Test
     @DisplayName("Setters должны устанавливать значения")
     void setters_SetValues() {
-        // Given
+        // Setup
         Category category = new Category();
 
-        // When
+        // Action
         category.setId(1L);
         category.setName("Setter Category");
 
-        // Then
+        // Assert
         assertThat(category.getId()).isEqualTo(1L);
         assertThat(category.getName()).isEqualTo("Setter Category");
     }

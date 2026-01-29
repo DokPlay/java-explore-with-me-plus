@@ -36,29 +36,29 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Реализация сервиса для работы с событиями.
+ * Implementation of the event service.
  * <p>
- * Основной класс бизнес-логики модуля Events. Обрабатывает:
+ * Core business-logic class of the Events module. Handles:
  * <ul>
- *     <li>CRUD операции с событиями</li>
- *     <li>Жизненный цикл события (PENDING → PUBLISHED/CANCELED)</li>
- *     <li>Интеграцию со Stats Service для статистики просмотров</li>
- *     <li>Валидацию бизнес-правил (время до события, права доступа)</li>
+ *     <li>CRUD operations on events</li>
+ *     <li>Event lifecycle (PENDING → PUBLISHED/CANCELED)</li>
+ *     <li>Integration with Stats Service for view statistics</li>
+ *     <li>Business-rule validation (time before event, access rights)</li>
  * </ul>
  *
- * <h2>Жизненный цикл события:</h2>
+ * <h2>Event lifecycle:</h2>
  * <pre>
- * [Создание] → PENDING → [Модерация] → PUBLISHED
+ * [Creation] → PENDING → [Moderation] → PUBLISHED
  *                    ↓
- *              CANCELED (отклонено/отменено)
+ *              CANCELED (rejected/canceled)
  * </pre>
  *
- * <h2>Бизнес-правила:</h2>
+ * <h2>Business rules:</h2>
  * <ul>
- *     <li>Пользователь: дата события минимум за 2 часа от текущего момента</li>
- *     <li>Админ: публикация минимум за 1 час до события</li>
- *     <li>Изменять можно только неопубликованные события</li>
- *     <li>Отклонить можно только неопубликованное событие</li>
+ *     <li>User: event date at least 2 hours from now</li>
+ *     <li>Admin: publication at least 1 hour before the event</li>
+ *     <li>Only unpublished events can be modified</li>
+ *     <li>Only unpublished events can be rejected</li>
  * </ul>
  *
  * @author ExploreWithMe Team
@@ -72,13 +72,13 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
 
-    /** Название приложения для статистики */
+    /** Application name for stats */
     private static final String APP_NAME = "ewm-main-service";
 
-    /** Минимальное время до события для пользователя (часы) */
+    /** Minimum time before the event for a user (hours) */
     private static final int HOURS_BEFORE_EVENT_USER = 2;
 
-    /** Минимальное время до события для админа при публикации (часы) */
+    /** Minimum time before the event for admin publication (hours) */
     private static final int HOURS_BEFORE_EVENT_ADMIN = 1;
 
     private final EventRepository eventRepository;
@@ -87,7 +87,7 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final StatsClient statsClient;
 
-    // ========== Private API ==========
+    // Private API — operations for authorized users
 
     @Override
     public List<EventShortDto> getUserEvents(Long userId, int from, int size) {
@@ -146,7 +146,7 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
 
-        // Можно изменить только отменённые события или события в ожидании модерации
+        // Changes are allowed only for canceled or pending moderation events
         if (event.getState() == EventState.PUBLISHED) {
             throw new ConflictException("Нельзя изменить опубликованное событие");
         }
@@ -176,7 +176,7 @@ public class EventServiceImpl implements EventService {
         return eventMapper.toEventFullDto(updatedEvent);
     }
 
-    // ========== Admin API ==========
+    // Admin API — operations for administrators
 
     @Override
     public List<EventFullDto> searchEventsForAdmin(
@@ -215,7 +215,7 @@ public class EventServiceImpl implements EventService {
                     if (event.getState() != EventState.PENDING) {
                         throw new ConflictException("Опубликовать можно только событие в статусе ожидания");
                     }
-                    // Проверка времени до события
+                    // Enforce the minimum time before publication
                     if (event.getEventDate().isBefore(LocalDateTime.now().plusHours(HOURS_BEFORE_EVENT_ADMIN))) {
                         throw new ConflictException("Дата начала события должна быть не ранее чем за час от публикации");
                     }
@@ -245,7 +245,7 @@ public class EventServiceImpl implements EventService {
         return eventMapper.toEventFullDto(updatedEvent);
     }
 
-    // ========== Public API ==========
+    // Public API — public operations
 
     @Override
     public List<EventShortDto> searchPublicEvents(
@@ -261,11 +261,11 @@ public class EventServiceImpl implements EventService {
             HttpServletRequest request) {
         log.info("Публичный поиск событий: text={}, categories={}, paid={}", text, categories, paid);
 
-        // Если диапазон дат не указан, берём события после текущего момента
+        // If the range is not specified, use now as the start
         LocalDateTime start = rangeStart != null ? rangeStart : LocalDateTime.now();
         LocalDateTime end = rangeEnd;
 
-        // Валидация дат
+        // Validate the date range
         if (end != null && start.isAfter(end)) {
             throw new ValidationException("Дата начала не может быть после даты окончания");
         }
@@ -276,14 +276,14 @@ public class EventServiceImpl implements EventService {
                 text, categories, paid, start, end,
                 onlyAvailable != null && onlyAvailable, pageable).getContent();
 
-        // Сохраняем статистику
+        // Record the request in stats
         saveHit(request);
 
-        // Получаем статистику просмотров
+        // Fetch view statistics
         Map<Long, Long> viewsMap = getViewsForEvents(events);
         events.forEach(e -> e.setViews(viewsMap.getOrDefault(e.getId(), 0L)));
 
-        // Сортировка
+        // Apply sorting to the result
         if ("VIEWS".equalsIgnoreCase(sort)) {
             events = events.stream()
                     .sorted(Comparator.comparing(Event::getViews).reversed())
@@ -304,10 +304,10 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
 
-        // Сохраняем статистику
+        // Record the request in stats
         saveHit(request);
 
-        // Получаем количество просмотров
+        // Update event views from stats
         Map<Long, Long> viewsMap = getViewsForEvents(List.of(event));
         event.setViews(viewsMap.getOrDefault(eventId, 0L));
 
@@ -321,7 +321,7 @@ public class EventServiceImpl implements EventService {
         return eventMapper.toEventFullDto(event);
     }
 
-    // ========== Private Methods ==========
+    // Private methods — helper operations
 
     private void validateUserExists(Long userId) {
         if (!userRepository.existsById(userId)) {

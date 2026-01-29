@@ -14,72 +14,50 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Репозиторий для работы с событиями.
+ * Repository for events.
  * <p>
- * Предоставляет методы для:
- * <ul>
- *     <li>Базовые CRUD операции (наследуются от JpaRepository)</li>
- *     <li>Поиск событий пользователя</li>
- *     <li>Административный поиск с фильтрами</li>
- *     <li>Публичный поиск опубликованных событий</li>
- * </ul>
- *
- * <h2>Особенности JPQL запросов:</h2>
- * <ul>
- *     <li>Используется CAST для корректной обработки NULL параметров в PostgreSQL</li>
- *     <li>Публичный поиск возвращает только события со статусом PUBLISHED</li>
- *     <li>Поддерживается пагинация через Pageable</li>
- * </ul>
- *
- * @author ExploreWithMe Team
- * @version 1.0
+ * Contains methods for user, admin, and public search.
  */
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-    /**
-     * Находит все события пользователя с пагинацией.
-     *
-     * @param initiatorId ID пользователя-инициатора
-     * @param pageable    параметры пагинации
-     * @return страница событий пользователя
-     */
+        /**
+         * Returns a user's events with pagination.
+         *
+         * @param initiatorId initiator user ID
+         * @param pageable    pagination parameters
+         * @return page of the user's events
+         */
     Page<Event> findAllByInitiatorId(Long initiatorId, Pageable pageable);
 
-    /**
-     * Находит событие по ID и ID инициатора.
-     * <p>
-     * Используется для проверки прав доступа пользователя к событию.
-     *
-     * @param eventId ID события
-     * @param initiatorId ID инициатора
-     * @return событие, если найдено и принадлежит пользователю
-     */
+        /**
+         * Finds an event by ID and initiator.
+         *
+         * @param eventId     event ID
+         * @param initiatorId initiator ID
+         * @return event if found and belongs to the user
+         */
     Optional<Event> findByIdAndInitiatorId(Long eventId, Long initiatorId);
 
-    /**
-     * Проверяет существование события в указанной категории.
-     * <p>
-     * Используется перед удалением категории для проверки связей.
-     *
-     * @param categoryId ID категории
-     * @return true, если есть события в данной категории
-     */
+        /**
+         * Checks whether there are events in the specified category.
+         *
+         * @param categoryId category ID
+         * @return true if events exist in the category
+         */
     boolean existsByCategoryId(Long categoryId);
 
-    /**
-     * Поиск событий для администратора с фильтрами.
-     * <p>
-     * Возвращает события любого статуса. Все параметры опциональны.
-     *
-     * @param users      список ID пользователей (NULL = все)
-     * @param states     список статусов (NULL = все)
-     * @param categories список ID категорий (NULL = все)
-     * @param rangeStart начало временного диапазона (NULL = без ограничения)
-     * @param rangeEnd   конец временного диапазона (NULL = без ограничения)
-     * @param pageable   параметры пагинации
-     * @return страница событий, соответствующих фильтрам
-     */
+        /**
+         * Searches events for admins with filters.
+         *
+         * @param users      list of user IDs (NULL = all)
+         * @param states     list of states (NULL = all)
+         * @param categories list of category IDs (NULL = all)
+         * @param rangeStart start of time range (NULL = no limit)
+         * @param rangeEnd   end of time range (NULL = no limit)
+         * @param pageable   pagination parameters
+         * @return page of events matching the filters
+         */
     @Query("SELECT e FROM Event e " +
            "WHERE (:users IS NULL OR e.initiator.id IN :users) " +
            "AND (:states IS NULL OR e.state IN :states) " +
@@ -94,21 +72,18 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("rangeEnd") LocalDateTime rangeEnd,
             Pageable pageable);
 
-    /**
-     * Публичный поиск опубликованных событий с фильтрами.
-     * <p>
-     * Возвращает только события со статусом PUBLISHED.
-     * Поддерживает текстовый поиск по аннотации и описанию (регистронезависимый).
-     *
-     * @param text          текст для поиска (NULL = без текстового фильтра)
-     * @param categories    список ID категорий (NULL = все категории)
-     * @param paid          фильтр платности (NULL = все)
-     * @param rangeStart    начало временного диапазона
-     * @param rangeEnd      конец временного диапазона
-     * @param onlyAvailable только события с доступными местами
-     * @param pageable      параметры пагинации
-     * @return страница опубликованных событий
-     */
+        /**
+         * Public search for published events with filters.
+         *
+         * @param text          search text (NULL = no text filter)
+         * @param categories    list of category IDs (NULL = all categories)
+         * @param paid          paid filter (NULL = all)
+         * @param rangeStart    start of time range
+         * @param rangeEnd      end of time range
+         * @param onlyAvailable only events with available spots
+         * @param pageable      pagination parameters
+         * @return page of published events
+         */
     @Query("SELECT e FROM Event e " +
            "WHERE e.state = 'PUBLISHED' " +
            "AND (CAST(:text AS string) IS NULL OR LOWER(e.annotation) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%')) " +
@@ -128,24 +103,20 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("onlyAvailable") Boolean onlyAvailable,
             Pageable pageable);
 
-    /**
-     * Находит событие по ID и статусу.
-     * <p>
-     * Используется для получения опубликованного события в Public API.
-     *
-     * @param id    ID события
-     * @param state требуемый статус события
-     * @return событие, если найдено с указанным статусом
-     */
+        /**
+         * Finds an event by ID and state.
+         *
+         * @param id    event ID
+         * @param state required event state
+         * @return event if found with the specified state
+         */
     Optional<Event> findByIdAndState(Long id, EventState state);
 
-    /**
-     * Находит события по списку ID.
-     * <p>
-     * Используется для пакетной загрузки событий (например, для подборок).
-     *
-     * @param ids список ID событий
-     * @return список найденных событий
-     */
+        /**
+         * Finds events by a list of IDs.
+         *
+         * @param ids list of event IDs
+         * @return list of found events
+         */
     List<Event> findAllByIdIn(List<Long> ids);
 }

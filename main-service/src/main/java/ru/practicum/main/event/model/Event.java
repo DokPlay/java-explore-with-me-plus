@@ -23,7 +23,7 @@ import ru.practicum.main.user.model.User;
 import java.time.LocalDateTime;
 
 /**
- * Сущность события.
+ * Event entity.
  */
 @Entity
 @Table(name = "events")
@@ -35,92 +35,92 @@ import java.time.LocalDateTime;
 public class Event {
 
     /**
-     * Уникальный идентификатор события.
+     * Unique event identifier.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Краткое описание события (аннотация).
+     * Short event description (annotation).
      */
     @Column(nullable = false, length = 2000)
     private String annotation;
 
     /**
-     * Категория события.
+     * Event category.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
     /**
-     * Количество одобренных заявок на участие.
+     * Number of approved participation requests.
      */
     @Column(name = "confirmed_requests")
     @Builder.Default
     private Long confirmedRequests = 0L;
 
     /**
-     * Дата и время создания события.
+     * Event creation date and time.
      */
     @Column(name = "created_on", nullable = false)
     private LocalDateTime createdOn;
 
     /**
-     * Полное описание события.
+     * Full event description.
      */
     @Column(length = 7000)
     private String description;
 
     /**
-     * Дата и время проведения события.
+     * Event date and time.
      */
     @Column(name = "event_date", nullable = false)
     private LocalDateTime eventDate;
 
     /**
-     * Инициатор (создатель) события.
+     * Event initiator (creator).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "initiator_id", nullable = false)
     private User initiator;
 
     /**
-     * Координаты места проведения события.
+     * Event venue coordinates.
      */
     @Embedded
     private Location location;
 
     /**
-     * Флаг платности события.
+     * Paid flag.
      */
     @Column(nullable = false)
     @Builder.Default
     private Boolean paid = false;
 
     /**
-     * Лимит участников (0 = без ограничений).
+     * Participant limit (0 = unlimited).
      */
     @Column(name = "participant_limit")
     @Builder.Default
     private Integer participantLimit = 0;
 
     /**
-     * Дата и время публикации события.
+     * Event publication date and time.
      */
     @Column(name = "published_on")
     private LocalDateTime publishedOn;
 
     /**
-     * Требуется ли пре-модерация заявок.
+     * Whether request pre-moderation is required.
      */
     @Column(name = "request_moderation")
     @Builder.Default
     private Boolean requestModeration = true;
 
     /**
-     * Состояние события.
+     * Event state.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -128,13 +128,13 @@ public class Event {
     private EventState state = EventState.PENDING;
 
     /**
-     * Заголовок события.
+     * Event title.
      */
     @Column(nullable = false, length = 120)
     private String title;
 
     /**
-     * Количество просмотров.
+     * View count.
      */
     @Builder.Default
     private Long views = 0L;

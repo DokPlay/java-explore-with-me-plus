@@ -22,7 +22,7 @@ import ru.practicum.main.event.service.EventService;
 import java.util.List;
 
 /**
- * Приватный контроллер для работы с событиями (для авторизованных пользователей).
+ * Controller for event operations by authorized users.
  */
 @RestController
 @RequestMapping("/users/{userId}/events")
@@ -33,7 +33,7 @@ public class PrivateEventController {
     private final EventService eventService;
 
     /**
-     * Получение событий, добавленных текущим пользователем.
+     * Returns events created by the user.
      */
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
@@ -46,7 +46,7 @@ public class PrivateEventController {
     }
 
     /**
-     * Добавление нового события.
+     * Creates a new event.
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -58,7 +58,7 @@ public class PrivateEventController {
     }
 
     /**
-     * Получение полной информации о событии, добавленном текущим пользователем.
+     * Returns full information about a user's event.
      */
     @GetMapping("/{eventId}")
     @ResponseStatus(HttpStatus.OK)
@@ -70,7 +70,7 @@ public class PrivateEventController {
     }
 
     /**
-     * Изменение события, добавленного текущим пользователем.
+     * Updates a user's event.
      */
     @PatchMapping("/{eventId}")
     @ResponseStatus(HttpStatus.OK)

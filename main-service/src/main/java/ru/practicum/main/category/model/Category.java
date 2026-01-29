@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Сущность категории.
+ * Category entity.
  */
 @Entity
 @Table(name = "categories")
@@ -25,14 +25,14 @@ import lombok.Setter;
 public class Category {
 
     /**
-     * Уникальный идентификатор категории.
+     * Unique category identifier.
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Название категории (уникальное).
+     * Category name (unique).
      */
     @Column(nullable = false, unique = true, length = 50)
     private String name;

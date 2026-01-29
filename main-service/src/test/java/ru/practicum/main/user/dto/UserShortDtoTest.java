@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit тесты для UserShortDto.
+ * Unit tests for {@link UserShortDto}.
  */
 @DisplayName("UserShortDto Tests")
 class UserShortDtoTest {
@@ -14,10 +14,10 @@ class UserShortDtoTest {
     @Test
     @DisplayName("Должен создать DTO через конструктор")
     void constructor_CreatesDto() {
-        // When
+        // Action
         UserShortDto dto = new UserShortDto(1L, "Test User");
 
-        // Then
+        // Assert
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getName()).isEqualTo("Test User");
     }
@@ -25,13 +25,13 @@ class UserShortDtoTest {
     @Test
     @DisplayName("Должен создать DTO через builder")
     void builder_CreatesDto() {
-        // When
+        // Action
         UserShortDto dto = UserShortDto.builder()
                 .id(1L)
                 .name("Builder User")
                 .build();
 
-        // Then
+        // Assert
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getName()).isEqualTo("Builder User");
     }
@@ -39,10 +39,10 @@ class UserShortDtoTest {
     @Test
     @DisplayName("Должен создать пустой DTO через no-args конструктор")
     void noArgsConstructor_CreatesEmptyDto() {
-        // When
+        // Action
         UserShortDto dto = new UserShortDto();
 
-        // Then
+        // Assert
         assertThat(dto.getId()).isNull();
         assertThat(dto.getName()).isNull();
     }
@@ -50,14 +50,14 @@ class UserShortDtoTest {
     @Test
     @DisplayName("Setters и Getters должны работать")
     void settersAndGetters_Work() {
-        // Given
+        // Setup
         UserShortDto dto = new UserShortDto();
 
-        // When
+        // Action
         dto.setId(1L);
         dto.setName("Setter User");
 
-        // Then
+        // Assert
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getName()).isEqualTo("Setter User");
     }

@@ -14,38 +14,30 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Глобальный обработчик исключений для всех контроллеров.
+ * Global exception handler for controllers.
  * <p>
- * Преобразует исключения в унифицированный формат {@link ApiError} согласно спецификации API.
- *
- * <h2>Обрабатываемые исключения:</h2>
- * <table border="1">
- *     <tr><th>Исключение</th><th>HTTP статус</th><th>Описание</th></tr>
- *     <tr><td>ValidationException</td><td>400</td><td>Ошибка валидации бизнес-правил</td></tr>
- *     <tr><td>MethodArgumentNotValidException</td><td>400</td><td>Ошибка валидации DTO (Bean Validation)</td></tr>
- *     <tr><td>MissingServletRequestParameterException</td><td>400</td><td>Отсутствует обязательный параметр</td></tr>
- *     <tr><td>NotFoundException</td><td>404</td><td>Ресурс не найден</td></tr>
- *     <tr><td>ConflictException</td><td>409</td><td>Конфликт бизнес-правил</td></tr>
- *     <tr><td>DataIntegrityViolationException</td><td>409</td><td>Нарушение целостности БД</td></tr>
- *     <tr><td>Exception</td><td>500</td><td>Неизвестная ошибка сервера</td></tr>
- * </table>
- *
- * @author ExploreWithMe Team
- * @version 1.0
- * @see ApiError
+ * Converts exceptions to the unified {@link ApiError} format.
+ * Handles:
+ * <ul>
+ *     <li>{@link ValidationException} — 400</li>
+ *     <li>{@link MethodArgumentNotValidException} — 400</li>
+ *     <li>{@link MissingServletRequestParameterException} — 400</li>
+ *     <li>{@link NotFoundException} — 404</li>
+ *     <li>{@link ConflictException} — 409</li>
+ *     <li>{@link DataIntegrityViolationException} — 409</li>
+ *     <li>{@link Exception} — 500</li>
+ * </ul>
  */
 @RestControllerAdvice
 @Slf4j
 public class ErrorHandler {
 
-    /**
-     * Обрабатывает ошибки валидации бизнес-правил.
-     * <p>
-     * Примеры: некорректная дата события, неверный диапазон дат.
-     *
-     * @param e исключение валидации
-     * @return объект ошибки с HTTP 400
-     */
+        /**
+         * Handles business-rule validation errors.
+         *
+         * @param e validation exception
+         * @return error object with HTTP 400
+         */
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleValidationException(ValidationException e) {
@@ -59,14 +51,12 @@ public class ErrorHandler {
                 .build();
     }
 
-    /**
-     * Обрабатывает ошибки валидации DTO (Bean Validation).
-     * <p>
-     * Срабатывает при нарушении аннотаций @NotNull, @Size, @Min и т.д.
-     *
-     * @param e исключение валидации аргументов
-     * @return объект ошибки с HTTP 400 и списком нарушенных полей
-     */
+        /**
+         * Handles Bean Validation violations.
+         *
+         * @param e argument validation exception
+         * @return error object with HTTP 400 and error details
+         */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
@@ -84,9 +74,9 @@ public class ErrorHandler {
                 .build();
     }
 
-    /**
-     * Обработка MissingServletRequestParameterException.
-     */
+        /**
+         * Handles missing required request parameter.
+         */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
@@ -100,9 +90,9 @@ public class ErrorHandler {
                 .build();
     }
 
-    /**
-     * Обработка NotFoundException.
-     */
+        /**
+         * Handles missing required resource.
+         */
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ApiError handleNotFoundException(NotFoundException e) {
@@ -116,9 +106,9 @@ public class ErrorHandler {
                 .build();
     }
 
-    /**
-     * Обработка ConflictException.
-     */
+        /**
+         * Handles business-rule conflicts.
+         */
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleConflictException(ConflictException e) {
@@ -132,9 +122,9 @@ public class ErrorHandler {
                 .build();
     }
 
-    /**
-     * Обработка DataIntegrityViolationException.
-     */
+        /**
+         * Handles data integrity violations.
+         */
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleDataIntegrityViolationException(DataIntegrityViolationException e) {
@@ -148,9 +138,9 @@ public class ErrorHandler {
                 .build();
     }
 
-    /**
-     * Обработка остальных исключений.
-     */
+        /**
+         * Handles unexpected exceptions.
+         */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiError handleException(Exception e) {

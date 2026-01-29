@@ -11,19 +11,19 @@ import ru.practicum.main.user.model.User;
 import java.util.List;
 
 /**
- * Репозиторий для работы с пользователями.
+ * Repository for users.
  */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
-     * Найти пользователей по списку ID.
+     * Find users by a list of IDs.
      */
     @Query("SELECT u FROM User u WHERE (:ids IS NULL OR u.id IN :ids)")
     Page<User> findByIds(@Param("ids") List<Long> ids, Pageable pageable);
 
     /**
-     * Проверить существование пользователя по email.
+     * Check whether a user exists by email.
      */
     boolean existsByEmail(String email);
 }

@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Публичный контроллер для работы с событиями.
+ * Controller for public access to events.
  */
 @RestController
 @RequestMapping("/events")
@@ -30,7 +30,7 @@ public class PublicEventController {
     private final EventService eventService;
 
     /**
-     * Получение событий с возможностью фильтрации.
+     * Returns published events with filters and sorting.
      */
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
@@ -53,7 +53,7 @@ public class PublicEventController {
     }
 
     /**
-     * Получение подробной информации об опубликованном событии по его идентификатору.
+     * Returns a published event by identifier.
      */
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit тесты для enum EventState.
+ * Unit tests for {@link EventState} enum.
  */
 @DisplayName("EventState Enum Tests")
 class EventStateTest {
@@ -14,7 +14,7 @@ class EventStateTest {
     @Test
     @DisplayName("Должен иметь значение PENDING")
     void pending_Exists() {
-        // When/Then
+        // Action and assert
         assertThat(EventState.PENDING).isNotNull();
         assertThat(EventState.PENDING.name()).isEqualTo("PENDING");
     }
@@ -22,7 +22,7 @@ class EventStateTest {
     @Test
     @DisplayName("Должен иметь значение PUBLISHED")
     void published_Exists() {
-        // When/Then
+        // Action and assert
         assertThat(EventState.PUBLISHED).isNotNull();
         assertThat(EventState.PUBLISHED.name()).isEqualTo("PUBLISHED");
     }
@@ -30,7 +30,7 @@ class EventStateTest {
     @Test
     @DisplayName("Должен иметь значение CANCELED")
     void canceled_Exists() {
-        // When/Then
+        // Action and assert
         assertThat(EventState.CANCELED).isNotNull();
         assertThat(EventState.CANCELED.name()).isEqualTo("CANCELED");
     }
@@ -38,14 +38,14 @@ class EventStateTest {
     @Test
     @DisplayName("Должен содержать 3 значения")
     void allValues_Count() {
-        // When/Then
+        // Action and assert
         assertThat(EventState.values()).hasSize(3);
     }
 
     @Test
     @DisplayName("valueOf должен работать корректно")
     void valueOf_Works() {
-        // When/Then
+        // Action and assert
         assertThat(EventState.valueOf("PENDING")).isEqualTo(EventState.PENDING);
         assertThat(EventState.valueOf("PUBLISHED")).isEqualTo(EventState.PUBLISHED);
         assertThat(EventState.valueOf("CANCELED")).isEqualTo(EventState.CANCELED);
@@ -54,7 +54,7 @@ class EventStateTest {
     @Test
     @DisplayName("ordinal должен быть последовательным")
     void ordinal_IsSequential() {
-        // When/Then
+        // Action and assert
         assertThat(EventState.PENDING.ordinal()).isGreaterThanOrEqualTo(0);
         assertThat(EventState.PUBLISHED.ordinal()).isGreaterThan(EventState.PENDING.ordinal());
         assertThat(EventState.CANCELED.ordinal()).isGreaterThan(EventState.PUBLISHED.ordinal());

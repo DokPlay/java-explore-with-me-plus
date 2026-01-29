@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Класс для хранения координат места проведения события.
+ * Class for storing event location coordinates.
  */
 @Embeddable
 @Getter
@@ -19,12 +19,12 @@ import lombok.Setter;
 public class Location {
 
     /**
-     * Широта.
+     * Latitude.
      */
     private Float lat;
 
     /**
-     * Долгота.
+     * Longitude.
      */
     private Float lon;
 }

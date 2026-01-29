@@ -12,7 +12,7 @@ import ru.practicum.main.user.dto.UserShortDto;
 import java.time.LocalDateTime;
 
 /**
- * Краткое DTO события для публичного API.
+ * Short event representation for the public API.
  */
 @Getter
 @Setter
@@ -22,48 +22,48 @@ import java.time.LocalDateTime;
 public class EventShortDto {
 
     /**
-     * Идентификатор события.
+     * Identifier.
      */
     private Long id;
 
     /**
-     * Краткое описание.
+     * Short description.
      */
     private String annotation;
 
     /**
-     * Категория события.
+     * Event category.
      */
     private CategoryDto category;
 
     /**
-     * Количество одобренных заявок.
+     * Number of approved requests.
      */
     private Long confirmedRequests;
 
     /**
-     * Дата и время проведения.
+     * Event date and time.
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime eventDate;
 
     /**
-     * Инициатор события.
+     * Initiator.
      */
     private UserShortDto initiator;
 
     /**
-     * Платное ли событие.
+     * Paid flag.
      */
     private Boolean paid;
 
     /**
-     * Заголовок.
+     * Title.
      */
     private String title;
 
     /**
-     * Количество просмотров.
+     * View count.
      */
     private Long views;
 }

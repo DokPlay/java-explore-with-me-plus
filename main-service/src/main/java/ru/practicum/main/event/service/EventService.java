@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Сервис для работы с событиями.
+ * Service for working with events.
  * <p>
- * Предоставляет методы для трёх уровней доступа:
+ * Provides methods for three access levels:
  * <ul>
- *     <li><b>Private API</b> - операции для авторизованных пользователей</li>
- *     <li><b>Admin API</b> - административные операции</li>
- *     <li><b>Public API</b> - публичный доступ без авторизации</li>
+ *     <li><b>Private API</b> - operations for authorized users</li>
+ *     <li><b>Admin API</b> - administrative operations</li>
+ *     <li><b>Public API</b> - public access without authorization</li>
  * </ul>
  *
  * @author ExploreWithMe Team
@@ -26,74 +26,72 @@ import java.util.List;
  */
 public interface EventService {
 
-    // ==================== Private API ====================
-    // Операции для авторизованных пользователей (владельцев событий)
+        // Private API — operations for authorized event owners
 
-    /**
-     * Получает список событий, созданных пользователем.
-     *
-     * @param userId ID пользователя
-     * @param from   начальный индекс для пагинации
-     * @param size   количество элементов на странице
-     * @return список кратких DTO событий
-     */
+        /**
+         * Gets a list of events created by a user.
+         *
+         * @param userId user ID
+         * @param from   start index for pagination
+         * @param size   number of items per page
+         * @return list of short event DTOs
+         */
     List<EventShortDto> getUserEvents(Long userId, int from, int size);
 
-    /**
-     * Создаёт новое событие.
-     * <p>
-     * Событие создаётся в статусе {@link EventState#PENDING} и требует
-     * модерации администратором перед публикацией.
-     *
-     * @param userId      ID пользователя-инициатора
-     * @param newEventDto данные нового события
-     * @return полное DTO созданного события
-     * @throws ru.practicum.main.exception.NotFoundException   если пользователь или категория не найдены
-     * @throws ru.practicum.main.exception.ValidationException если дата события некорректна
-     */
+        /**
+         * Creates a new event.
+         * <p>
+         * The event is created in {@link EventState#PENDING} and requires
+         * admin moderation before publication.
+         *
+         * @param userId      initiator user ID
+         * @param newEventDto new event data
+         * @return full DTO of the created event
+         * @throws ru.practicum.main.exception.NotFoundException   if the user or category is not found
+         * @throws ru.practicum.main.exception.ValidationException if the event date is invalid
+         */
     EventFullDto createEvent(Long userId, NewEventDto newEventDto);
 
-    /**
-     * Получает полную информацию о событии пользователя.
-     *
-     * @param userId  ID пользователя
-     * @param eventId ID события
-     * @return полное DTO события
-     * @throws ru.practicum.main.exception.NotFoundException если событие не найдено
-     */
+        /**
+         * Gets full information about a user's event.
+         *
+         * @param userId  user ID
+         * @param eventId event ID
+         * @return full event DTO
+         * @throws ru.practicum.main.exception.NotFoundException if the event is not found
+         */
     EventFullDto getUserEventById(Long userId, Long eventId);
 
-    /**
-     * Обновляет событие пользователем.
-     * <p>
-     * Пользователь может изменить только события в статусах:
-     * {@link EventState#PENDING} или {@link EventState#CANCELED}.
-     *
-     * @param userId        ID пользователя
-     * @param eventId       ID события
-     * @param updateRequest данные для обновления
-     * @return полное DTO обновлённого события
-     * @throws ru.practicum.main.exception.ConflictException если событие уже опубликовано
-     */
+        /**
+         * Updates an event by a user.
+         * <p>
+         * A user can update only events in states:
+         * {@link EventState#PENDING} or {@link EventState#CANCELED}.
+         *
+         * @param userId        user ID
+         * @param eventId       event ID
+         * @param updateRequest update data
+         * @return full DTO of the updated event
+         * @throws ru.practicum.main.exception.ConflictException if the event is already published
+         */
     EventFullDto updateEventByUser(Long userId, Long eventId, UpdateEventUserRequest updateRequest);
 
-    // ==================== Admin API ====================
-    // Административные операции для модерации и управления событиями
+        // Admin API — moderation and management operations for events
 
-    /**
-     * Поиск событий с фильтрами (для администратора).
-     * <p>
-     * Возвращает полную информацию о событиях, включая неопубликованные.
-     *
-     * @param users      список ID пользователей (опционально)
-     * @param states     список статусов событий (опционально)
-     * @param categories список ID категорий (опционально)
-     * @param rangeStart начало временного диапазона (опционально)
-     * @param rangeEnd   конец временного диапазона (опционально)
-     * @param from       начальный индекс для пагинации
-     * @param size       количество элементов на странице
-     * @return список полных DTO событий
-     */
+        /**
+         * Searches events with filters (for admins).
+         * <p>
+         * Returns full information about events, including unpublished ones.
+         *
+         * @param users      list of user IDs (optional)
+         * @param states     list of event states (optional)
+         * @param categories list of category IDs (optional)
+         * @param rangeStart start of time range (optional)
+         * @param rangeEnd   end of time range (optional)
+         * @param from       start index for pagination
+         * @param size       number of items per page
+         * @return list of full event DTOs
+         */
     List<EventFullDto> searchEventsForAdmin(
             List<Long> users,
             List<EventState> states,
@@ -103,44 +101,43 @@ public interface EventService {
             int from,
             int size);
 
-    /**
-     * Обновляет событие администратором.
-     * <p>
-     * Администратор может:
-     * <ul>
-     *     <li>Опубликовать событие (PUBLISH_EVENT) - только для статуса PENDING</li>
-     *     <li>Отклонить событие (REJECT_EVENT) - только для неопубликованных событий</li>
-     *     <li>Изменить любые поля события</li>
-     * </ul>
-     *
-     * @param eventId       ID события
-     * @param updateRequest данные для обновления
-     * @return полное DTO обновлённого события
-     * @throws ru.practicum.main.exception.ConflictException при нарушении бизнес-правил
-     */
+        /**
+         * Updates an event by an administrator.
+         * <p>
+         * An administrator can:
+         * <ul>
+         *     <li>Publish an event (PUBLISH_EVENT) - only for PENDING status</li>
+         *     <li>Reject an event (REJECT_EVENT) - only for unpublished events</li>
+         *     <li>Change any event fields</li>
+         * </ul>
+         *
+         * @param eventId       event ID
+         * @param updateRequest update data
+         * @return full DTO of the updated event
+         * @throws ru.practicum.main.exception.ConflictException if business rules are violated
+         */
     EventFullDto updateEventByAdmin(Long eventId, UpdateEventAdminRequest updateRequest);
 
-    // ==================== Public API ====================
-    // Публичный доступ к событиям (без авторизации)
+        // Public API — access to published events without authorization
 
-    /**
-     * Публичный поиск событий.
-     * <p>
-     * Возвращает только опубликованные события ({@link EventState#PUBLISHED}).
-     * Автоматически сохраняет статистику просмотров.
-     *
-     * @param text          текст для поиска в названии и описании (опционально)
-     * @param categories    список ID категорий (опционально)
-     * @param paid          фильтр по платности (опционально)
-     * @param rangeStart    начало временного диапазона (опционально)
-     * @param rangeEnd      конец временного диапазона (опционально)
-     * @param onlyAvailable только события с доступными местами
-     * @param sort          сортировка: EVENT_DATE или VIEWS
-     * @param from          начальный индекс для пагинации
-     * @param size          количество элементов на странице
-     * @param request       HTTP запрос для получения IP клиента
-     * @return список кратких DTO событий
-     */
+        /**
+         * Public search for events.
+         * <p>
+         * Returns only published events ({@link EventState#PUBLISHED}).
+         * Automatically records view statistics.
+         *
+         * @param text          search text in title and description (optional)
+         * @param categories    list of category IDs (optional)
+         * @param paid          paid filter (optional)
+         * @param rangeStart    start of time range (optional)
+         * @param rangeEnd      end of time range (optional)
+         * @param onlyAvailable only events with available spots
+         * @param sort          sorting: EVENT_DATE or VIEWS
+         * @param from          start index for pagination
+         * @param size          number of items per page
+         * @param request       HTTP request to obtain client IP
+         * @return list of short event DTOs
+         */
     List<EventShortDto> searchPublicEvents(
             String text,
             List<Long> categories,
@@ -153,28 +150,28 @@ public interface EventService {
             int size,
             HttpServletRequest request);
 
-    /**
-     * Получает опубликованное событие по ID.
-     * <p>
-     * Автоматически сохраняет статистику просмотра и возвращает
-     * актуальное количество просмотров из Stats Service.
-     *
-     * @param eventId ID события
-     * @param request HTTP запрос для получения IP клиента
-     * @return полное DTO события
-     * @throws ru.practicum.main.exception.NotFoundException если событие не найдено или не опубликовано
-     */
+        /**
+         * Gets a published event by ID.
+         * <p>
+         * Automatically records a view hit and returns
+         * the current view count from Stats Service.
+         *
+         * @param eventId event ID
+         * @param request HTTP request to obtain client IP
+         * @return full event DTO
+         * @throws ru.practicum.main.exception.NotFoundException if the event is not found or not published
+         */
     EventFullDto getPublishedEventById(Long eventId, HttpServletRequest request);
 
-    /**
-     * Получает событие по ID (для внутреннего использования).
-     * <p>
-     * Возвращает событие независимо от статуса публикации.
-     * Не сохраняет статистику просмотров.
-     *
-     * @param eventId ID события
-     * @return полное DTO события
-     * @throws ru.practicum.main.exception.NotFoundException если событие не найдено
-     */
+        /**
+         * Gets an event by ID (for internal use).
+         * <p>
+         * Returns the event regardless of publication status.
+         * Does not record view statistics.
+         *
+         * @param eventId event ID
+         * @return full event DTO
+         * @throws ru.practicum.main.exception.NotFoundException if the event is not found
+         */
     EventFullDto getEventById(Long eventId);
 }

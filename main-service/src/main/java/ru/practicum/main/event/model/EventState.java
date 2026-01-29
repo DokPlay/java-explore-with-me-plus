@@ -1,56 +1,28 @@
 package ru.practicum.main.event.model;
 
 /**
- * Состояния жизненного цикла события.
- * <p>
- * Диаграмма переходов между состояниями:
- * <pre>
- *                    ┌─────────────────────────────────────┐
- *                    │                                     │
- *   [Создание] ──► PENDING ──► [Публикация] ──► PUBLISHED │
- *                    │                                     │
- *                    ▼                                     │
- *   [Отмена/Отклонение] ──► CANCELED ◄─────────────────────┘
- *                              (только неопубликованные)
- * </pre>
- *
- * <h2>Правила переходов:</h2>
+ * Event lifecycle states and allowed transitions.
  * <ul>
- *     <li>PENDING → PUBLISHED: только администратор (действие PUBLISH_EVENT)</li>
- *     <li>PENDING → CANCELED: пользователь (CANCEL_REVIEW) или админ (REJECT_EVENT)</li>
- *     <li>CANCELED → PENDING: пользователь повторно отправляет на модерацию (SEND_TO_REVIEW)</li>
- *     <li>PUBLISHED → любое: запрещено (опубликованное событие нельзя отменить)</li>
+ *     <li>PENDING → PUBLISHED: published by admin (PUBLISH_EVENT)</li>
+ *     <li>PENDING → CANCELED: canceled by user (CANCEL_REVIEW) or rejected by admin (REJECT_EVENT)</li>
+ *     <li>CANCELED → PENDING: resubmitted for moderation (SEND_TO_REVIEW)</li>
+ *     <li>PUBLISHED: status changes are not allowed</li>
  * </ul>
- *
- * @author ExploreWithMe Team
- * @version 1.0
- * @see ru.practicum.main.event.dto.StateAction
  */
 public enum EventState {
 
     /**
-     * Ожидает модерации.
-     * <p>
-     * Начальное состояние после создания события.
-     * Событие не видно в публичном API.
+     * Pending moderation; event is not visible in the public API.
      */
     PENDING,
 
     /**
-     * Опубликовано.
-     * <p>
-     * Событие доступно в публичном API.
-     * Установлена дата публикации ({@code publishedOn}).
-     * Изменение статуса невозможно.
+     * Published; event is available in the public API.
      */
     PUBLISHED,
 
     /**
-     * Отменено.
-     * <p>
-     * Событие отклонено администратором или отменено пользователем.
-     * Не видно в публичном API.
-     * Пользователь может повторно отправить на модерацию.
+     * Canceled; event is not available in the public API.
      */
     CANCELED
 }

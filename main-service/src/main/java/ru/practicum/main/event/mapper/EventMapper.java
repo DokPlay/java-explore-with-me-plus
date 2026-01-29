@@ -20,14 +20,14 @@ import ru.practicum.main.user.model.User;
 import java.util.List;
 
 /**
- * Маппер для преобразования Event сущностей в DTO и обратно.
+ * Mapper for converting events between entities and DTOs.
  */
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface EventMapper {
 
     /**
-     * Преобразует NewEventDto в Event.
+     * Converts {@link NewEventDto} to {@link Event}.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "category", ignore = true)
@@ -40,27 +40,27 @@ public interface EventMapper {
     Event toEvent(NewEventDto dto);
 
     /**
-     * Преобразует Event в EventFullDto.
+     * Converts {@link Event} to {@link EventFullDto}.
      */
     EventFullDto toEventFullDto(Event event);
 
     /**
-     * Преобразует Event в EventShortDto.
+     * Converts {@link Event} to {@link EventShortDto}.
      */
     EventShortDto toEventShortDto(Event event);
 
     /**
-     * Преобразует список Event в список EventShortDto.
+     * Converts a list of {@link Event} to a list of {@link EventShortDto}.
      */
     List<EventShortDto> toEventShortDtoList(List<Event> events);
 
     /**
-     * Преобразует список Event в список EventFullDto.
+     * Converts a list of {@link Event} to a list of {@link EventFullDto}.
      */
     List<EventFullDto> toEventFullDtoList(List<Event> events);
 
     /**
-     * Обновляет Event из UpdateEventUserRequest.
+     * Updates {@link Event} with data from {@link UpdateEventUserRequest}.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "category", ignore = true)
@@ -73,7 +73,7 @@ public interface EventMapper {
     void updateEventFromUserRequest(UpdateEventUserRequest dto, @MappingTarget Event event);
 
     /**
-     * Обновляет Event из UpdateEventAdminRequest.
+     * Updates {@link Event} with data from {@link UpdateEventAdminRequest}.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "category", ignore = true)
@@ -86,22 +86,22 @@ public interface EventMapper {
     void updateEventFromAdminRequest(UpdateEventAdminRequest dto, @MappingTarget Event event);
 
     /**
-     * Преобразует Category в CategoryDto.
+     * Converts {@link Category} to {@link CategoryDto}.
      */
     CategoryDto toCategoryDto(Category category);
 
     /**
-     * Преобразует User в UserShortDto.
+     * Converts {@link User} to {@link UserShortDto}.
      */
     UserShortDto toUserShortDto(User user);
 
     /**
-     * Преобразует Location в LocationDto.
+     * Converts {@link Location} to {@link LocationDto}.
      */
     LocationDto toLocationDto(Location location);
 
     /**
-     * Преобразует LocationDto в Location.
+     * Converts {@link LocationDto} to {@link Location}.
      */
     Location toLocation(LocationDto dto);
 }
