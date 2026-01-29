@@ -37,6 +37,34 @@ import java.util.stream.Collectors;
 
 /**
  * Реализация сервиса для работы с событиями.
+ * <p>
+ * Основной класс бизнес-логики модуля Events. Обрабатывает:
+ * <ul>
+ *     <li>CRUD операции с событиями</li>
+ *     <li>Жизненный цикл события (PENDING → PUBLISHED/CANCELED)</li>
+ *     <li>Интеграцию со Stats Service для статистики просмотров</li>
+ *     <li>Валидацию бизнес-правил (время до события, права доступа)</li>
+ * </ul>
+ *
+ * <h2>Жизненный цикл события:</h2>
+ * <pre>
+ * [Создание] → PENDING → [Модерация] → PUBLISHED
+ *                    ↓
+ *              CANCELED (отклонено/отменено)
+ * </pre>
+ *
+ * <h2>Бизнес-правила:</h2>
+ * <ul>
+ *     <li>Пользователь: дата события минимум за 2 часа от текущего момента</li>
+ *     <li>Админ: публикация минимум за 1 час до события</li>
+ *     <li>Изменять можно только неопубликованные события</li>
+ *     <li>Отклонить можно только неопубликованное событие</li>
+ * </ul>
+ *
+ * @author ExploreWithMe Team
+ * @version 1.0
+ * @see EventService
+ * @see ru.practicum.client.StatsClient
  */
 @Service
 @RequiredArgsConstructor
@@ -44,8 +72,13 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
 
+    /** Название приложения для статистики */
     private static final String APP_NAME = "ewm-main-service";
+
+    /** Минимальное время до события для пользователя (часы) */
     private static final int HOURS_BEFORE_EVENT_USER = 2;
+
+    /** Минимальное время до события для админа при публикации (часы) */
     private static final int HOURS_BEFORE_EVENT_ADMIN = 1;
 
     private final EventRepository eventRepository;

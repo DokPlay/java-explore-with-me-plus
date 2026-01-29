@@ -14,14 +14,37 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Глобальный обработчик исключений.
+ * Глобальный обработчик исключений для всех контроллеров.
+ * <p>
+ * Преобразует исключения в унифицированный формат {@link ApiError} согласно спецификации API.
+ *
+ * <h2>Обрабатываемые исключения:</h2>
+ * <table border="1">
+ *     <tr><th>Исключение</th><th>HTTP статус</th><th>Описание</th></tr>
+ *     <tr><td>ValidationException</td><td>400</td><td>Ошибка валидации бизнес-правил</td></tr>
+ *     <tr><td>MethodArgumentNotValidException</td><td>400</td><td>Ошибка валидации DTO (Bean Validation)</td></tr>
+ *     <tr><td>MissingServletRequestParameterException</td><td>400</td><td>Отсутствует обязательный параметр</td></tr>
+ *     <tr><td>NotFoundException</td><td>404</td><td>Ресурс не найден</td></tr>
+ *     <tr><td>ConflictException</td><td>409</td><td>Конфликт бизнес-правил</td></tr>
+ *     <tr><td>DataIntegrityViolationException</td><td>409</td><td>Нарушение целостности БД</td></tr>
+ *     <tr><td>Exception</td><td>500</td><td>Неизвестная ошибка сервера</td></tr>
+ * </table>
+ *
+ * @author ExploreWithMe Team
+ * @version 1.0
+ * @see ApiError
  */
 @RestControllerAdvice
 @Slf4j
 public class ErrorHandler {
 
     /**
-     * Обработка ValidationException.
+     * Обрабатывает ошибки валидации бизнес-правил.
+     * <p>
+     * Примеры: некорректная дата события, неверный диапазон дат.
+     *
+     * @param e исключение валидации
+     * @return объект ошибки с HTTP 400
      */
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -37,7 +60,12 @@ public class ErrorHandler {
     }
 
     /**
-     * Обработка MethodArgumentNotValidException.
+     * Обрабатывает ошибки валидации DTO (Bean Validation).
+     * <p>
+     * Срабатывает при нарушении аннотаций @NotNull, @Size, @Min и т.д.
+     *
+     * @param e исключение валидации аргументов
+     * @return объект ошибки с HTTP 400 и списком нарушенных полей
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)

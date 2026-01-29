@@ -15,6 +15,30 @@ import java.time.LocalDateTime;
 
 /**
  * DTO для создания нового события.
+ * <p>
+ * Используется в Private API при создании события пользователем.
+ * Все обязательные поля отмечены аннотациями валидации.
+ *
+ * <h2>Обязательные поля:</h2>
+ * <ul>
+ *     <li>{@code annotation} - краткое описание (20-2000 символов)</li>
+ *     <li>{@code category} - ID категории</li>
+ *     <li>{@code description} - полное описание (20-7000 символов)</li>
+ *     <li>{@code eventDate} - дата проведения (минимум за 2 часа от текущего момента)</li>
+ *     <li>{@code location} - координаты места проведения</li>
+ *     <li>{@code title} - заголовок (3-120 символов)</li>
+ * </ul>
+ *
+ * <h2>Опциональные поля (с значениями по умолчанию):</h2>
+ * <ul>
+ *     <li>{@code paid} - платное событие (по умолчанию: false)</li>
+ *     <li>{@code participantLimit} - лимит участников (по умолчанию: 0 = без лимита)</li>
+ *     <li>{@code requestModeration} - пре-модерация заявок (по умолчанию: true)</li>
+ * </ul>
+ *
+ * @author ExploreWithMe Team
+ * @version 1.0
+ * @see ru.practicum.main.event.controller.PrivateEventController#createEvent
  */
 @Getter
 @Setter
