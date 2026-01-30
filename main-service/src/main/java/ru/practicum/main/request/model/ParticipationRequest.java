@@ -9,6 +9,7 @@ import ru.practicum.main.request.status.RequestStatus;
 import ru.practicum.main.user.model.User;
 import java.time.LocalDateTime;
 import  ru.practicum.main.event.model.Event;
+
 @Entity
 @Table(name = "participation_requests")
 @Data
