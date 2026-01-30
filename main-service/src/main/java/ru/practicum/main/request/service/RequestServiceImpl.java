@@ -10,6 +10,7 @@ import ru.practicum.main.event.model.EventState;
 import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
+import ru.practicum.main.exception.ValidationException;
 import ru.practicum.main.request.dto.EventRequestStatusUpdateRequest;
 import ru.practicum.main.request.dto.EventRequestStatusUpdateResult;
 import ru.practicum.main.request.dto.ParticipationRequestDto;
@@ -40,7 +41,11 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
+
         log.info("Получение заявок пользователя userId={}", userId);
+        if (userId <= 0) {
+            throw new ValidationException("userId must be greater than 0");
+        }
         validateUserExists(userId);
 
         List<ParticipationRequest> requests = requestRepository
@@ -54,7 +59,15 @@ public class RequestServiceImpl implements RequestService {
     @Override
     @Transactional
     public ParticipationRequestDto createRequest(Long userId, Long eventId) {
+
         log.info("Создание заявки: userId={}, eventId={}", userId, eventId);
+
+        if (userId <= 0) {
+            throw new ValidationException("userId must be greater than 0");
+        }
+        if (eventId <= 0) {
+            throw new ValidationException("eventId must be greater than 0");
+        }
 
         User requester = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден: id=" + userId));
@@ -107,8 +120,14 @@ public class RequestServiceImpl implements RequestService {
     @Override
     @Transactional
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
-        log.info("Отмена заявки: userId={}, requestId={}", userId, requestId);
 
+        log.info("Отмена заявки: userId={}, requestId={}", userId, requestId);
+        if (userId <= 0) {
+            throw new ValidationException("userId must be greater than 0");
+        }
+        if (requestId <= 0) {
+            throw new ValidationException("eventId must be greater than 0");
+        }
         ParticipationRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Заявка не найдена: id=" + requestId));
 
@@ -130,8 +149,14 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     public List<ParticipationRequestDto> getEventRequests(Long userId, Long eventId) {
-        log.info("Получение заявок на событие: userId={}, eventId={}", userId, eventId);
 
+        log.info("Получение заявок на событие: userId={}, eventId={}", userId, eventId);
+        if (userId <= 0) {
+            throw new ValidationException("userId must be greater than 0");
+        }
+        if (eventId <= 0) {
+            throw new ValidationException("eventId must be greater than 0");
+        }
         // Проверяем, что событие принадлежит пользователю
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено или не принадлежит пользователю"));
@@ -151,7 +176,12 @@ public class RequestServiceImpl implements RequestService {
             Long eventId,
             EventRequestStatusUpdateRequest updateRequest) {
         log.info("Изменение статуса заявок: userId={}, eventId={}", userId, eventId);
-
+        if (userId <= 0) {
+            throw new ValidationException("userId must be greater than 0");
+        }
+        if (eventId <= 0) {
+            throw new ValidationException("eventId must be greater than 0");
+        }
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
 

@@ -30,8 +30,8 @@ public class EventRequestController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<ParticipationRequestDto> getEventRequests(
-            @PathVariable @Positive Long userId,
-            @PathVariable @Positive Long eventId) {
+            @PathVariable  Long userId,
+            @PathVariable  Long eventId) {
         log.info("GET /users/{}/events/{}/requests - Получение заявок на событие",
                 userId, eventId);
         return requestService.getEventRequests(userId, eventId);
@@ -44,8 +44,8 @@ public class EventRequestController {
     @PatchMapping
     @ResponseStatus(HttpStatus.OK)
     public EventRequestStatusUpdateResult updateRequestStatus(
-            @PathVariable @Positive Long userId,
-            @PathVariable @Positive Long eventId,
+            @PathVariable  Long userId,
+            @PathVariable  Long eventId,
             @Valid @RequestBody EventRequestStatusUpdateRequest updateRequest) {
         log.info("PATCH /users/{}/events/{}/requests - Изменение статуса заявок",
                 userId, eventId);
