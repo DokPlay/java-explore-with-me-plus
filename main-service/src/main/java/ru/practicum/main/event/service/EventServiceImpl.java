@@ -270,7 +270,10 @@ public class EventServiceImpl implements EventService {
             throw new ValidationException("Дата начала не может быть после даты окончания");
         }
 
-        Pageable pageable = PageRequest.of(from / size, size);
+        boolean sortByViews = "VIEWS".equalsIgnoreCase(sort);
+        Pageable pageable = sortByViews
+                ? Pageable.unpaged()
+                : PageRequest.of(from / size, size, Sort.by("eventDate").ascending());
 
         List<Event> events = eventRepository.findPublicEvents(
                 text, categories, paid, start, end,
@@ -283,15 +286,15 @@ public class EventServiceImpl implements EventService {
         Map<Long, Long> viewsMap = getViewsForEvents(events);
         events.forEach(e -> e.setViews(viewsMap.getOrDefault(e.getId(), 0L)));
 
-        // Apply sorting to the result
-        if ("VIEWS".equalsIgnoreCase(sort)) {
+        // Apply sorting to the result and paginate when sorting by views
+        if (sortByViews) {
             events = events.stream()
                     .sorted(Comparator.comparing(Event::getViews).reversed())
                     .collect(Collectors.toList());
-        } else {
-            events = events.stream()
-                    .sorted(Comparator.comparing(Event::getEventDate))
-                    .collect(Collectors.toList());
+
+            int startIdx = Math.min(from, events.size());
+            int endIdx = Math.min(startIdx + size, events.size());
+            events = events.subList(startIdx, endIdx);
         }
 
         return eventMapper.toEventShortDtoList(events);

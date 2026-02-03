@@ -136,16 +136,20 @@ public class RequestServiceImpl implements RequestService {
             throw new NotFoundException("Заявка не принадлежит пользователю");
         }
 
-        // Можно отменить только свои заявки в статусе PENDING
-        if (request.getStatus() != RequestStatus.PENDING) {
-            throw new ConflictException("Отменить можно только заявку в статусе ожидания");
+        if (request.getStatus() != RequestStatus.CANCELED) {
+            if (request.getStatus() == RequestStatus.CONFIRMED) {
+                Event event = request.getEvent();
+                if (event != null && event.getConfirmedRequests() != null && event.getConfirmedRequests() > 0) {
+                    event.setConfirmedRequests(event.getConfirmedRequests() - 1);
+                    eventRepository.save(event);
+                }
+            }
+            request.setStatus(RequestStatus.CANCELED);
+            request = requestRepository.save(request);
         }
-        request.setStatus(RequestStatus.CANCELED);
 
-        ParticipationRequest updatedRequest = requestRepository.save(request);
-        log.info("Заявка отменена: id={}", updatedRequest.getId());
-
-        return requestMapper.toDto(updatedRequest);
+        log.info("Заявка отменена: id={}", request.getId());
+        return requestMapper.toDto(request);
     }
 
     // ========== Методы организатора события ==========
