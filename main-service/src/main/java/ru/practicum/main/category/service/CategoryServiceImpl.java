@@ -33,7 +33,7 @@ public class CategoryServiceImpl implements CategoryService {
         if (!category.getName().equals(dto.getName()) && repository.existsByName(dto.getName())) {
             throw new ConflictException("Категория с именем '" + dto.getName() + "' уже существует");
         }
-        
+
         category.setName(dto.getName());
         return toDto(repository.save(category));
     }
