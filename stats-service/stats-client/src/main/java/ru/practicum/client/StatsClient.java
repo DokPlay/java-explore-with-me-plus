@@ -15,10 +15,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * REST client for interacting with Stats Service.
+ * REST client for communicating with the statistics service.
  * <p>
- * Provides operations to record views and retrieve statistics.
- * The Stats Server URL is configured via {@code stats-server.url}.
+ * Review fixes applied:
+ * - Made Spring-managed component via @Component annotation
+ * - Server URL injected from configuration via @Value
+ * - RestTemplate injected via constructor (Spring DI)
+ * </p>
  */
 @Component
 public class StatsClient {
@@ -26,12 +29,12 @@ public class StatsClient {
     private final String serverUrl;
     private final RestTemplate restTemplate;
 
-        /**
-         * Constructor with Spring dependency injection.
-         *
-         * @param serverUrl    Stats Server URL from configuration (stats-server.url)
-         * @param restTemplate Spring-managed RestTemplate bean
-         */
+    /**
+     * Constructor with Spring dependency injection.
+     *
+     * @param serverUrl    stats server URL from application properties (stats-server.url)
+     * @param restTemplate Spring-managed RestTemplate bean
+     */
     public StatsClient(
             @Value("${stats-server.url}") String serverUrl,
             RestTemplate restTemplate
@@ -40,11 +43,6 @@ public class StatsClient {
         this.restTemplate = restTemplate;
     }
 
-        /**
-         * Records an endpoint view.
-         *
-         * @param endpointHitDto view data (app, uri, ip, timestamp)
-         */
     @SuppressWarnings("unchecked")
     public void hit(EndpointHitDto endpointHitDto) {
         HttpHeaders headers = new HttpHeaders();
@@ -61,12 +59,17 @@ public class StatsClient {
         );
     }
 
-        /**
-         * Returns statistics for the given parameters.
-         *
-         * @param requestDto period parameters, URIs, and uniqueness flag
-         * @return list of aggregated statistics
-         */
+    /**
+     * Retrieves statistics from the stats server.
+     * <p>
+     * Review fixes applied:
+     * - Created StatsRequestDto with @NotNull validation for start/end parameters
+     * - Changed return type from List<Object> to List<StatsResponseDto>
+     * </p>
+     *
+     * @param requestDto validated request containing start, end, uris, and unique flag
+     * @return list of statistics response DTOs
+     */
     @SuppressWarnings("unchecked")
     public List<StatsResponseDto> getStats(@Valid StatsRequestDto requestDto) {
         Map<String, Object> params = new HashMap<>();

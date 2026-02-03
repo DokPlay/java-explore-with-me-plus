@@ -40,7 +40,3 @@ dependency-reduced-pom.xml
 
 ### Secrets ###
 *.env
-
-### Custom ###
-.gemini/
-**/skills/knowledge-base/
