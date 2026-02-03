@@ -1,7 +1,6 @@
 package ru.practicum.main.compilation.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import ru.practicum.main.event.model.Event;
 
