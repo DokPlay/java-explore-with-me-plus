@@ -137,6 +137,9 @@ public class RequestServiceImpl implements RequestService {
         }
 
         // Можно отменить только свои заявки в статусе PENDING
+        if (request.getStatus() != RequestStatus.PENDING) {
+            throw new ConflictException("Отменить можно только заявку в статусе ожидания");
+        }
         request.setStatus(RequestStatus.CANCELED);
 
         ParticipationRequest updatedRequest = requestRepository.save(request);
@@ -203,9 +206,16 @@ public class RequestServiceImpl implements RequestService {
         // Если лимит участников равен 0 или отключена пре-модерация
         if (event.getParticipantLimit() == 0 || !event.getRequestModeration()) {
             // Все заявки автоматически подтверждаются
+            long confirmedCount = event.getConfirmedRequests();
             for (ParticipationRequest request : requests) {
+                if (request.getStatus() != RequestStatus.PENDING) {
+                    throw new ConflictException("Можно изменить статус только у заявок в ожидании");
+                }
                 request.setStatus(RequestStatus.CONFIRMED);
+                confirmedCount++;
             }
+            event.setConfirmedRequests(confirmedCount);
+            eventRepository.save(event);
             requestRepository.saveAll(requests);
 
             return EventRequestStatusUpdateResult.builder()

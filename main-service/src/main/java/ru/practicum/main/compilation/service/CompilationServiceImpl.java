@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.main.compilation.dto.CompilationDto;
 import ru.practicum.main.compilation.dto.NewCompilationDto;
+import ru.practicum.main.compilation.dto.UpdateCompilationRequest;
 import ru.practicum.main.compilation.model.Compilation;
 import ru.practicum.main.compilation.repository.CompilationRepository;
 import ru.practicum.main.event.dto.EventShortDto;
@@ -52,7 +53,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
-    public CompilationDto update(Long compId, NewCompilationDto dto) {
+    public CompilationDto update(Long compId, UpdateCompilationRequest dto) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Подборка с id=" + compId + " не найдена"));
 
