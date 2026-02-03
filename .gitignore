@@ -40,3 +40,8 @@ dependency-reduced-pom.xml
 
 ### Secrets ###
 *.env
+
+### Custom ###
+.gemini/
+.github/workflows/skills/
+**/skills/knowledge-base/
