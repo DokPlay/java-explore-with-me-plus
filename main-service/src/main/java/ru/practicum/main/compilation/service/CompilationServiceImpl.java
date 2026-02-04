@@ -3,6 +3,7 @@ package ru.practicum.main.compilation.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main.compilation.dto.CompilationDto;
 import ru.practicum.main.compilation.dto.NewCompilationDto;
 import ru.practicum.main.compilation.dto.UpdateCompilationRequest;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CompilationServiceImpl implements CompilationService {
 
     private final CompilationRepository compilationRepository;
@@ -31,6 +33,7 @@ public class CompilationServiceImpl implements CompilationService {
     private final EventMapper eventMapper;
 
     @Override
+    @Transactional
     public CompilationDto create(NewCompilationDto dto) {
         Set<Event> events = getEventsByIdsOrThrow(dto.getEvents());
 
@@ -46,6 +49,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional
     public void delete(Long compId) {
         if (!compilationRepository.existsById(compId)) {
             throw new NotFoundException("Подборка с id=" + compId + " не найдена");
@@ -54,6 +58,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional
     public CompilationDto update(Long compId, UpdateCompilationRequest dto) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Подборка с id=" + compId + " не найдена"));
