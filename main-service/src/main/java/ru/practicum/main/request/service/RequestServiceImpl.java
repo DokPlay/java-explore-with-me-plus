@@ -24,7 +24,9 @@ import ru.practicum.main.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -127,7 +129,7 @@ public class RequestServiceImpl implements RequestService {
             throw new ValidationException("userId must be greater than 0");
         }
         if (requestId <= 0) {
-            throw new ValidationException("eventId must be greater than 0");
+            throw new ValidationException("requestId must be greater than 0");
         }
         ParticipationRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Заявка не найдена: id=" + requestId));
@@ -190,6 +192,15 @@ public class RequestServiceImpl implements RequestService {
         if (eventId <= 0) {
             throw new ValidationException("eventId must be greater than 0");
         }
+        if (updateRequest == null) {
+            throw new ValidationException("request body must not be null");
+        }
+        if (updateRequest.getRequestIds() == null || updateRequest.getRequestIds().isEmpty()) {
+            throw new ValidationException("requestIds must not be empty");
+        }
+        if (updateRequest.getStatus() == null) {
+            throw new ValidationException("status must be specified");
+        }
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
 
@@ -198,8 +209,20 @@ public class RequestServiceImpl implements RequestService {
             throw new NotFoundException("Только инициатор события может изменять статус заявок");
         }
 
+        Set<Long> uniqueRequestIds = new HashSet<>(updateRequest.getRequestIds());
         List<ParticipationRequest> requests = requestRepository
-                .findAllByIdIn(updateRequest.getRequestIds());
+                .findAllByIdIn(uniqueRequestIds.stream().toList());
+
+        if (requests.size() != uniqueRequestIds.size()) {
+            Set<Long> foundIds = requests.stream()
+                    .map(ParticipationRequest::getId)
+                    .collect(Collectors.toSet());
+            List<Long> missingIds = uniqueRequestIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .sorted()
+                    .toList();
+            throw new NotFoundException("Заявки не найдены: id=" + missingIds);
+        }
 
         // Проверяем, что все заявки принадлежат этому событию
         for (ParticipationRequest request : requests) {
