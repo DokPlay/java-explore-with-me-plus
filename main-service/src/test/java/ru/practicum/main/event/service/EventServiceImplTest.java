@@ -5,6 +5,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -468,6 +470,37 @@ class EventServiceImplTest {
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Событие не найдено");
         }
+
+        @Test
+        @DisplayName("Должен опубликовать событие с обновлённой датой")
+        void updateEventByAdmin_PublishWithUpdatedDate_Success() {
+            testEvent.setState(EventState.PENDING);
+            testEvent.setEventDate(LocalDateTime.now().plusMinutes(30));
+
+            UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
+            updateRequest.setStateAction(UpdateEventAdminRequest.StateAction.PUBLISH_EVENT);
+            updateRequest.setEventDate(LocalDateTime.now().plusHours(2));
+
+            when(eventRepository.findById(1L)).thenReturn(Optional.of(testEvent));
+            doAnswer(invocation -> {
+                UpdateEventAdminRequest dto = invocation.getArgument(0);
+                Event event = invocation.getArgument(1);
+                event.setEventDate(dto.getEventDate());
+                return null;
+            }).when(eventMapper).updateEventFromAdminRequest(any(UpdateEventAdminRequest.class), any(Event.class));
+            when(eventRepository.save(any(Event.class))).thenAnswer(inv -> {
+                Event saved = inv.getArgument(0);
+                assertThat(saved.getState()).isEqualTo(EventState.PUBLISHED);
+                assertThat(saved.getPublishedOn()).isNotNull();
+                return saved;
+            });
+            when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
+
+            EventFullDto result = eventService.updateEventByAdmin(1L, updateRequest);
+
+            assertThat(result).isNotNull();
+            verify(eventRepository).save(any(Event.class));
+        }
     }
 
     // Public API tests
@@ -537,6 +570,71 @@ class EventServiceImplTest {
             assertThatThrownBy(() -> eventService.getEventById(999L))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Событие не найдено");
+        }
+    }
+
+    @Nested
+    @DisplayName("Pagination validation")
+    class PaginationValidationTests {
+
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
+        @DisplayName("Должен выбросить ValidationException при некорректном size для getUserEvents")
+        void getUserEvents_InvalidSize_ThrowsException(int size) {
+            assertThatThrownBy(() -> eventService.getUserEvents(1L, 0, size))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("size must be");
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {-1, -5})
+        @DisplayName("Должен выбросить ValidationException при некорректном from для getUserEvents")
+        void getUserEvents_InvalidFrom_ThrowsException(int from) {
+            assertThatThrownBy(() -> eventService.getUserEvents(1L, from, 10))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("from must be");
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
+        @DisplayName("Должен выбросить ValidationException при некорректном size для searchEventsForAdmin")
+        void searchEventsForAdmin_InvalidSize_ThrowsException(int size) {
+            assertThatThrownBy(() -> eventService.searchEventsForAdmin(
+                    null, null, null, null, null, 0, size))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("size must be");
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {-1, -10})
+        @DisplayName("Должен выбросить ValidationException при некорректном from для searchEventsForAdmin")
+        void searchEventsForAdmin_InvalidFrom_ThrowsException(int from) {
+            assertThatThrownBy(() -> eventService.searchEventsForAdmin(
+                    null, null, null, null, null, from, 10))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("from must be");
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
+        @DisplayName("Должен выбросить ValidationException при некорректном size для searchPublicEvents")
+        void searchPublicEvents_InvalidSize_ThrowsException(int size) {
+            assertThatThrownBy(() -> eventService.searchPublicEvents(
+                    null, null, null, null, null, false, null, 0, size,
+                    mock(jakarta.servlet.http.HttpServletRequest.class)))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("size must be");
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {-1, -10})
+        @DisplayName("Должен выбросить ValidationException при некорректном from для searchPublicEvents")
+        void searchPublicEvents_InvalidFrom_ThrowsException(int from) {
+            assertThatThrownBy(() -> eventService.searchPublicEvents(
+                    null, null, null, null, null, false, null, from, 10,
+                    mock(jakarta.servlet.http.HttpServletRequest.class)))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("from must be");
         }
     }
 }
