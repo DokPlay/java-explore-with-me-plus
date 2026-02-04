@@ -1,5 +1,6 @@
 package ru.practicum.main.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -65,6 +66,28 @@ public class ErrorHandler {
                         error.getField(), error.getDefaultMessage(), error.getRejectedValue()))
                 .collect(Collectors.joining("; "));
         log.warn("Ошибка валидации аргументов: {}", errors);
+        return ApiError.builder()
+                .errors(List.of(errors))
+                .message(errors)
+                .reason("Incorrectly made request.")
+                .status("BAD_REQUEST")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+        /**
+         * Handles Bean Validation violations for request parameters.
+         */
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleConstraintViolationException(ConstraintViolationException e) {
+        String errors = e.getConstraintViolations().stream()
+                .map(violation -> String.format("Field: %s. Error: %s. Value: %s",
+                        violation.getPropertyPath(),
+                        violation.getMessage(),
+                        violation.getInvalidValue()))
+                .collect(Collectors.joining("; "));
+        log.warn("Ошибка валидации параметров: {}", errors);
         return ApiError.builder()
                 .errors(List.of(errors))
                 .message(errors)
