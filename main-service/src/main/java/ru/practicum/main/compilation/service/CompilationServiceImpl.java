@@ -13,6 +13,7 @@ import ru.practicum.main.event.mapper.EventMapper;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.NotFoundException;
+import ru.practicum.main.util.PaginationValidator;
 
 import java.util.HashSet;
 import java.util.List;
@@ -29,9 +30,7 @@ public class CompilationServiceImpl implements CompilationService {
 
     @Override
     public CompilationDto create(NewCompilationDto dto) {
-        Set<Event> events = dto.getEvents() != null && !dto.getEvents().isEmpty()
-                ? new HashSet<>(eventRepository.findAllById(dto.getEvents()))
-                : Set.of();
+        Set<Event> events = getEventsByIdsOrThrow(dto.getEvents());
 
         Boolean pinned = dto.getPinned() != null ? dto.getPinned() : false;
 
@@ -64,11 +63,7 @@ public class CompilationServiceImpl implements CompilationService {
             compilation.setPinned(dto.getPinned());
         }
         if (dto.getEvents() != null) {
-            Set<Event> events = dto.getEvents().isEmpty()
-                    ? Set.of()
-                    : eventRepository.findAllById(dto.getEvents())
-                        .stream().collect(Collectors.toSet());
-            compilation.setEvents(events);
+            compilation.setEvents(getEventsByIdsOrThrow(dto.getEvents()));
         }
 
         return toDto(compilationRepository.save(compilation));
@@ -76,6 +71,7 @@ public class CompilationServiceImpl implements CompilationService {
 
     @Override
     public List<CompilationDto> getAll(Boolean pinned, int from, int size) {
+        PaginationValidator.validatePagination(from, size);
         PageRequest page = PageRequest.of(from / size, size);
         List<Compilation> comps = pinned == null
                 ? compilationRepository.findAll(page).getContent()
@@ -101,5 +97,27 @@ public class CompilationServiceImpl implements CompilationService {
                 .pinned(compilation.getPinned())
                 .events(events)
                 .build();
+    }
+
+    private Set<Event> getEventsByIdsOrThrow(List<Long> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<Long> uniqueIds = new HashSet<>(eventIds);
+        List<Event> events = eventRepository.findAllById(uniqueIds);
+
+        if (events.size() != uniqueIds.size()) {
+            Set<Long> foundIds = events.stream()
+                    .map(Event::getId)
+                    .collect(Collectors.toSet());
+            List<Long> missingIds = uniqueIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .sorted()
+                    .toList();
+            throw new NotFoundException("События не найдены: id=" + missingIds);
+        }
+
+        return new HashSet<>(events);
     }
 }
