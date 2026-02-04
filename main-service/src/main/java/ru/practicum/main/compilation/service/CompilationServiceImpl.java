@@ -13,10 +13,12 @@ import ru.practicum.main.event.mapper.EventMapper;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.NotFoundException;
+import ru.practicum.main.exception.ValidationException;
 import ru.practicum.main.util.PaginationValidator;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -102,6 +104,9 @@ public class CompilationServiceImpl implements CompilationService {
     private Set<Event> getEventsByIdsOrThrow(List<Long> eventIds) {
         if (eventIds == null || eventIds.isEmpty()) {
             return Set.of();
+        }
+        if (eventIds.stream().anyMatch(Objects::isNull)) {
+            throw new ValidationException("eventIds must not contain null");
         }
 
         Set<Long> uniqueIds = new HashSet<>(eventIds);
