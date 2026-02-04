@@ -12,6 +12,7 @@ import ru.practicum.main.user.dto.NewUserRequest;
 import ru.practicum.main.user.dto.UserDto;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
+import ru.practicum.main.util.PaginationValidator;
 
 import java.util.List;
 
@@ -39,6 +40,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDto> getUsers(List<Long> ids, int from, int size) {
+        PaginationValidator.validatePagination(from, size);
         if (ids != null && ids.isEmpty()) {
             return List.of();
         }
