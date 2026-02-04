@@ -26,6 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -198,8 +199,15 @@ public class RequestServiceImpl implements RequestService {
         if (updateRequest.getRequestIds() == null || updateRequest.getRequestIds().isEmpty()) {
             throw new ValidationException("requestIds must not be empty");
         }
-        if (updateRequest.getStatus() == null) {
+        if (updateRequest.getRequestIds().stream().anyMatch(Objects::isNull)) {
+            throw new ValidationException("requestIds must not contain null");
+        }
+        RequestStatus updateStatus = updateRequest.getStatus();
+        if (updateStatus == null) {
             throw new ValidationException("status must be specified");
+        }
+        if (updateStatus != RequestStatus.CONFIRMED && updateStatus != RequestStatus.REJECTED) {
+            throw new ValidationException("status must be CONFIRMED or REJECTED");
         }
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
@@ -270,7 +278,7 @@ public class RequestServiceImpl implements RequestService {
                 throw new ConflictException("Можно изменить статус только у заявок в ожидании");
             }
 
-            if (updateRequest.getStatus() == RequestStatus.CONFIRMED) {
+            if (updateStatus == RequestStatus.CONFIRMED) {
                 if (confirmedCount < limit) {
                     request.setStatus(RequestStatus.CONFIRMED);
                     confirmedCount++;
@@ -280,7 +288,7 @@ public class RequestServiceImpl implements RequestService {
                     request.setStatus(RequestStatus.REJECTED);
                     rejected.add(requestMapper.toDto(request));
                 }
-            } else if (updateRequest.getStatus() == RequestStatus.REJECTED) {
+            } else if (updateStatus == RequestStatus.REJECTED) {
                 request.setStatus(RequestStatus.REJECTED);
                 rejected.add(requestMapper.toDto(request));
             }
