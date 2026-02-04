@@ -28,6 +28,7 @@ import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
+import ru.practicum.main.util.PaginationValidator;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -92,6 +93,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public List<EventShortDto> getUserEvents(Long userId, int from, int size) {
         log.info("Получение событий пользователя userId={}, from={}, size={}", userId, from, size);
+        PaginationValidator.validatePagination(from, size);
         validateUserExists(userId);
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
@@ -188,6 +190,7 @@ public class EventServiceImpl implements EventService {
             int from,
             int size) {
         log.info("Админ-поиск событий: users={}, states={}, categories={}", users, states, categories);
+        PaginationValidator.validatePagination(from, size);
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
 
@@ -211,6 +214,14 @@ public class EventServiceImpl implements EventService {
             validateEventDate(updateRequest.getEventDate(), HOURS_BEFORE_EVENT_ADMIN);
         }
 
+        if (updateRequest.getCategory() != null) {
+            Category category = categoryRepository.findById(updateRequest.getCategory())
+                    .orElseThrow(() -> new NotFoundException("Категория не найдена: id=" + updateRequest.getCategory()));
+            event.setCategory(category);
+        }
+
+        eventMapper.updateEventFromAdminRequest(updateRequest, event);
+
         if (updateRequest.getStateAction() != null) {
             switch (updateRequest.getStateAction()) {
                 case PUBLISH_EVENT -> {
@@ -233,14 +244,6 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        if (updateRequest.getCategory() != null) {
-            Category category = categoryRepository.findById(updateRequest.getCategory())
-                    .orElseThrow(() -> new NotFoundException("Категория не найдена: id=" + updateRequest.getCategory()));
-            event.setCategory(category);
-        }
-
-        eventMapper.updateEventFromAdminRequest(updateRequest, event);
-
         Event updatedEvent = eventRepository.save(event);
         log.info("Событие обновлено администратором: id={}", updatedEvent.getId());
 
@@ -262,6 +265,7 @@ public class EventServiceImpl implements EventService {
             int size,
             HttpServletRequest request) {
         log.info("Публичный поиск событий: text={}, categories={}, paid={}", text, categories, paid);
+        PaginationValidator.validatePagination(from, size);
 
         // If the range is not specified, use now as the start
         LocalDateTime start = rangeStart != null ? rangeStart : LocalDateTime.now();
