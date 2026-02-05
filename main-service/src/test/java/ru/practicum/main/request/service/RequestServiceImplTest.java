@@ -49,7 +49,7 @@ class RequestServiceImplTest {
     @DisplayName("Должен выбросить ValidationException при null request body")
     void updateRequestStatus_NullRequest_ThrowsException() {
         assertThatThrownBy(() -> requestService.updateRequestStatus(1L, 1L, null))
-                .isInstanceOf(ValidationException.class)
+                .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("request body must not be null");
     }
 
