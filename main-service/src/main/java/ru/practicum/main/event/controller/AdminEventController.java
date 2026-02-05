@@ -1,5 +1,6 @@
 package ru.practicum.main.event.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.constraints.Positive;
@@ -62,7 +63,7 @@ public class AdminEventController {
     @ResponseStatus(HttpStatus.OK)
     public EventFullDto updateEvent(
             @PathVariable Long eventId,
-            @RequestBody UpdateEventAdminRequest updateRequest) {
+            @RequestBody @Valid UpdateEventAdminRequest updateRequest) {
         log.info("PATCH /admin/events/{} - Обновление события администратором", eventId);
         return eventService.updateEventByAdmin(eventId, updateRequest);
     }

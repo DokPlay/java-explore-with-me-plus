@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,147 +34,209 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ErrorHandler {
 
-        /**
-         * Handles business-rule validation errors.
-         *
-         * @param e validation exception
-         * @return error object with HTTP 400
-         */
+    /**
+     * Handles business-rule validation errors.
+     *
+     * @param e validation exception
+     * @return error object with HTTP 400
+     */
+
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleValidationException(ValidationException e) {
-        log.warn("Ошибка валидации: {}", e.getMessage());
-        return ApiError.builder()
-                .errors(List.of(e.getMessage()))
-                .message(e.getMessage())
-                .reason("Incorrectly made request.")
-                .status("BAD_REQUEST")
-                .timestamp(LocalDateTime.now())
-                .build();
+        log.warn("ValidationException: {}", e.getMessage(), e);
+        return buildApiError(
+                "VALIDATION_ERROR",
+                e.getMessage(),
+                "Incorrectly made request.",
+                HttpStatus.BAD_REQUEST,
+                getExceptionDetails(e)
+        );
     }
 
-        /**
-         * Handles Bean Validation violations.
-         *
-         * @param e argument validation exception
-         * @return error object with HTTP 400 and error details
-         */
+    /**
+     * Handles Bean Validation violations.
+     *
+     * @param e argument validation exception
+     * @return error object with HTTP 400 and error details
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        String errors = e.getBindingResult().getFieldErrors().stream()
-                .map(error -> String.format("Field: %s. Error: %s. Value: %s",
-                        error.getField(), error.getDefaultMessage(), error.getRejectedValue()))
+        String errorDetails = e.getBindingResult().getFieldErrors().stream()
+                .map(error -> String.format("%s: %s (значение: '%s')",
+                        error.getField(),
+                        error.getDefaultMessage(),
+                        error.getRejectedValue()))
                 .collect(Collectors.joining("; "));
-        log.warn("Ошибка валидации аргументов: {}", errors);
-        return ApiError.builder()
-                .errors(List.of(errors))
-                .message(errors)
-                .reason("Incorrectly made request.")
-                .status("BAD_REQUEST")
-                .timestamp(LocalDateTime.now())
-                .build();
-    }
 
-        /**
-         * Handles Bean Validation violations for request parameters.
-         */
+        log.warn("MethodArgumentNotValidException: {}", errorDetails, e);
+
+        return buildApiError(
+                "ARGUMENT_VALIDATION_FAILED",
+                "Ошибка валидации аргументов",
+                errorDetails,
+                HttpStatus.BAD_REQUEST,
+                getExceptionDetails(e)
+        );
+    }
+    /**
+     * Handles Bean Validation violations for request parameters.
+     */
+
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleConstraintViolationException(ConstraintViolationException e) {
-        String errors = e.getConstraintViolations().stream()
-                .map(violation -> String.format("Field: %s. Error: %s. Value: %s",
+        String errorDetails = e.getConstraintViolations().stream()
+                .map(violation -> String.format("%s: %s (значение: %s)",
                         violation.getPropertyPath(),
                         violation.getMessage(),
                         violation.getInvalidValue()))
                 .collect(Collectors.joining("; "));
-        log.warn("Ошибка валидации параметров: {}", errors);
-        return ApiError.builder()
-                .errors(List.of(errors))
-                .message(errors)
-                .reason("Incorrectly made request.")
-                .status("BAD_REQUEST")
-                .timestamp(LocalDateTime.now())
-                .build();
+
+        log.warn("ConstraintViolationException: {}", errorDetails, e);
+
+        return buildApiError(
+                "CONSTRAINT_VIOLATION",
+                "Нарушение ограничений валидации",
+                errorDetails,
+                HttpStatus.BAD_REQUEST,
+                getExceptionDetails(e)
+        );
     }
 
-        /**
-         * Handles missing required request parameter.
-         */
+
+    /**
+     * Handles missing required request parameter.
+     */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
-        log.warn("Отсутствует обязательный параметр: {}", e.getMessage());
-        return ApiError.builder()
-                .errors(List.of(e.getMessage()))
-                .message(e.getMessage())
-                .reason("Incorrectly made request.")
-                .status("BAD_REQUEST")
-                .timestamp(LocalDateTime.now())
-                .build();
-    }
+        String errorDetails = String.format("Не указан обязательный параметр '%s' типа %s",
+                e.getParameterName(), e.getParameterType());
 
-        /**
-         * Handles missing required resource.
-         */
+        log.warn("MissingServletRequestParameterException: {}", errorDetails, e);
+
+        return buildApiError(
+                "MISSING_PARAMETER",
+                "Отсутствует обязательный параметр запроса",
+                errorDetails,
+                HttpStatus.BAD_REQUEST,
+                getExceptionDetails(e)
+        );
+    }
+    /**
+     * Handles missing required resource.
+     */
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ApiError handleNotFoundException(NotFoundException e) {
-        log.warn("Объект не найден: {}", e.getMessage());
-        return ApiError.builder()
-                .errors(List.of(e.getMessage()))
-                .message(e.getMessage())
-                .reason("The required object was not found.")
-                .status("NOT_FOUND")
-                .timestamp(LocalDateTime.now())
-                .build();
+        log.warn("NotFoundException: {}", e.getMessage(), e);
+
+        return buildApiError(
+                "RESOURCE_NOT_FOUND",
+                "Запрашиваемый ресурс не найден",
+                e.getMessage(),
+                HttpStatus.NOT_FOUND,
+                getExceptionDetails(e)
+        );
     }
 
-        /**
-         * Handles business-rule conflicts.
-         */
+    /**
+     * Handles business-rule conflicts.
+     */
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleConflictException(ConflictException e) {
-        log.warn("Конфликт: {}", e.getMessage());
-        return ApiError.builder()
-                .errors(List.of(e.getMessage()))
-                .message(e.getMessage())
-                .reason("For the requested operation the conditions are not met.")
-                .status("CONFLICT")
-                .timestamp(LocalDateTime.now())
-                .build();
-    }
+        log.warn("ConflictException: {}", e.getMessage(), e);
 
-        /**
-         * Handles data integrity violations.
-         */
+        return buildApiError(
+                "BUSINESS_CONFLICT",
+                "Конфликт бизнес-логики",
+                e.getMessage(),
+                HttpStatus.CONFLICT,
+                getExceptionDetails(e)
+        );
+    }
+    /**
+     * Handles data integrity violations.
+     */
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleDataIntegrityViolationException(DataIntegrityViolationException e) {
-        log.warn("Нарушение целостности данных: {}", e.getMessage());
+        String rootCauseMessage = getRootCauseMessage(e);
+        log.warn("DataIntegrityViolationException: {}", rootCauseMessage, e);
+
+        return buildApiError(
+                "DATA_INTEGRITY_VIOLATION",
+                "Нарушение целостности данных",
+                rootCauseMessage,
+                HttpStatus.CONFLICT,
+                getExceptionDetails(e)
+        );
+    }
+
+    /**
+     * Handles unexpected exceptions.
+     */
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ApiError handleException(Exception e) {
+        log.error("Unexpected error: ", e);
+
+        return buildApiError(
+                "INTERNAL_SERVER_ERROR",
+                "Внутренняя ошибка сервера",
+                "Произошла непредвиденная ошибка",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                getExceptionDetails(e)
+        );
+    }
+
+    private ApiError buildApiError(String errorCode, String message, String reason,
+                                   HttpStatus status, List<String> errors) {
         return ApiError.builder()
-                .errors(List.of(e.getMessage()))
-                .message(e.getMessage())
-                .reason("Integrity constraint has been violated.")
-                .status("CONFLICT")
+                .errorCode(errorCode) // Добавьте это поле в ApiError
+                .errors(errors)
+                .message(message)
+                .reason(reason)
+                .status(status.name())
                 .timestamp(LocalDateTime.now())
                 .build();
     }
 
-        /**
-         * Handles unexpected exceptions.
-         */
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiError handleException(Exception e) {
-        log.error("Внутренняя ошибка сервера: ", e);
-        return ApiError.builder()
-                .errors(List.of(e.getMessage()))
-                .message("An unexpected error occurred")
-                .reason("Internal server error")
-                .status("INTERNAL_SERVER_ERROR")
-                .timestamp(LocalDateTime.now())
-                .build();
+    /**
+     * Извлекает детальную информацию об исключении
+     */
+    private List<String> getExceptionDetails(Throwable e) {
+        StringBuilder details = new StringBuilder();
+        details.append("Exception: ").append(e.getClass().getSimpleName())
+                .append("\nMessage: ").append(e.getMessage());
+
+        if (e.getCause() != null) {
+            details.append("\nCause: ").append(e.getCause().getClass().getSimpleName())
+                    .append(" - ").append(e.getCause().getMessage());
+        }
+
+        // Добавляем stack trace (первые 5 строк для отладки)
+        if (e.getStackTrace() != null && e.getStackTrace().length > 0) {
+            details.append("\nStack trace (top 5):");
+            Arrays.stream(e.getStackTrace())
+                    .limit(5)
+                    .forEach(stack -> details.append("\n  at ").append(stack));
+        }
+
+        return List.of(details.toString());
+    }
+
+    /**
+     * Получает сообщение корневой причины исключения
+     */
+    private String getRootCauseMessage(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause.getMessage() != null ? cause.getMessage() : e.getMessage();
     }
 }

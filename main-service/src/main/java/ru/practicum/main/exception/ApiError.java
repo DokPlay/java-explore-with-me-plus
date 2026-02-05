@@ -20,6 +20,7 @@ import java.util.List;
 @Builder
 public class ApiError {
 
+    private String errorCode;
     /**
      * List of error messages.
      */

@@ -112,11 +112,4 @@ public interface EventRepository extends JpaRepository<Event, Long> {
          */
     Optional<Event> findByIdAndState(Long id, EventState state);
 
-        /**
-         * Finds events by a list of IDs.
-         *
-         * @param ids list of event IDs
-         * @return list of found events
-         */
-    List<Event> findAllByIdIn(List<Long> ids);
 }

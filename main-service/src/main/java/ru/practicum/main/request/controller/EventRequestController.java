@@ -46,7 +46,7 @@ public class EventRequestController {
     public EventRequestStatusUpdateResult updateRequestStatus(
             @PathVariable  Long userId,
             @PathVariable  Long eventId,
-            @Valid @RequestBody EventRequestStatusUpdateRequest updateRequest) {
+            @RequestBody EventRequestStatusUpdateRequest updateRequest) {
         log.info("PATCH /users/{}/events/{}/requests - Изменение статуса заявок",
                 userId, eventId);
         return requestService.updateRequestStatus(userId, eventId, updateRequest);

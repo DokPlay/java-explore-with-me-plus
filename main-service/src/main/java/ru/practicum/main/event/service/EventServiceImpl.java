@@ -28,6 +28,7 @@ import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
+import ru.practicum.main.user.service.UserService;
 import ru.practicum.main.util.PaginationValidator;
 
 import java.time.LocalDateTime;
@@ -205,7 +206,6 @@ public class EventServiceImpl implements EventService {
     public EventFullDto updateEventByAdmin(Long eventId, UpdateEventAdminRequest updateRequest) {
         log.info("Обновление события eventId={} администратором", eventId);
 
-        validateAdminUpdateRequest(updateRequest);
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
@@ -346,31 +346,6 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-    private void validateAdminUpdateRequest(UpdateEventAdminRequest updateRequest) {
-        if (updateRequest == null) {
-            return;
-        }
-
-        String annotation = updateRequest.getAnnotation();
-        if (annotation != null && (annotation.length() < 20 || annotation.length() > 2000)) {
-            throw new ValidationException("Аннотация должна быть от 20 до 2000 символов");
-        }
-
-        String description = updateRequest.getDescription();
-        if (description != null && (description.length() < 20 || description.length() > 7000)) {
-            throw new ValidationException("Описание должно быть от 20 до 7000 символов");
-        }
-
-        String title = updateRequest.getTitle();
-        if (title != null && (title.length() < 3 || title.length() > 120)) {
-            throw new ValidationException("Заголовок должен быть от 3 до 120 символов");
-        }
-
-        Integer participantLimit = updateRequest.getParticipantLimit();
-        if (participantLimit != null && participantLimit < 0) {
-            throw new ValidationException("Лимит участников не может быть отрицательным");
-        }
-    }
 
     private void saveHit(HttpServletRequest request) {
         try {

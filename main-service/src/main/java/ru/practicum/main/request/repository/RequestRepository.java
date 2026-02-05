@@ -23,6 +23,4 @@ public interface RequestRepository extends JpaRepository<ParticipationRequest, L
     // Найти заявки по списку ID
     List<ParticipationRequest> findAllByIdIn(List<Long> ids);
 
-    // Посчитать количество подтверждённых заявок на событие
-    Long countByEventIdAndStatus(Long eventId, RequestStatus status);
 }

@@ -193,9 +193,6 @@ public class RequestServiceImpl implements RequestService {
         if (eventId <= 0) {
             throw new ValidationException("eventId must be greater than 0");
         }
-        if (updateRequest == null) {
-            throw new ValidationException("request body must not be null");
-        }
         if (updateRequest.getRequestIds() == null || updateRequest.getRequestIds().isEmpty()) {
             throw new ValidationException("requestIds must not be empty");
         }

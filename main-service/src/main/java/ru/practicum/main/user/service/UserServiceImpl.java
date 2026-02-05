@@ -13,12 +13,14 @@ import ru.practicum.main.user.dto.UserDto;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
 import ru.practicum.main.util.PaginationValidator;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -26,7 +28,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDto create(NewUserRequest request) {
+        log.info("Создание нового пользователя: email={}, name={}",
+                request.getEmail(), request.getName());
         if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("Попытка создать пользователя с уже существующим email: {}", request.getEmail());
             throw new ConflictException("Пользователь с email '" + request.getEmail() + "' уже существует");
         }
 
@@ -37,6 +42,7 @@ public class UserServiceImpl implements UserService {
 
         return toDto(userRepository.save(user));
     }
+
 
     @Override
     public List<UserDto> getUsers(List<Long> ids, int from, int size) {

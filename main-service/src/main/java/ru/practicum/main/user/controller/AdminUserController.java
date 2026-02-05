@@ -37,7 +37,7 @@ public class AdminUserController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserDto create(@Valid @RequestBody NewUserRequest request) {
-        log.info("POST /admin/users - Создание пользователя");
+        log.info("POST /admin/users - Создание пользователя: name={}",request.getName());
         return userService.create(request);
     }
 
