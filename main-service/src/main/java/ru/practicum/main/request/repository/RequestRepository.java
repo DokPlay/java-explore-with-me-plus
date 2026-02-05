@@ -4,8 +4,6 @@ package ru.practicum.main.request.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import ru.practicum.main.request.model.ParticipationRequest;
-import ru.practicum.main.request.status.RequestStatus;
-
 import java.util.List;
 
 @Repository

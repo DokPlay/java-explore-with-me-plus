@@ -28,7 +28,7 @@ import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
-import ru.practicum.main.user.service.UserService;
+
 import ru.practicum.main.util.PaginationValidator;
 
 import java.time.LocalDateTime;

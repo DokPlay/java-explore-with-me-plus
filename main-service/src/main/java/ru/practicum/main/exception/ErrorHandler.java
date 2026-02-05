@@ -125,6 +125,7 @@ public class ErrorHandler {
                 getExceptionDetails(e)
         );
     }
+
     /**
      * Handles missing required resource.
      */
@@ -158,6 +159,7 @@ public class ErrorHandler {
                 getExceptionDetails(e)
         );
     }
+
     /**
      * Handles data integrity violations.
      */
