@@ -3,38 +3,44 @@ package ru.practicum.client;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+import ru.practicum.dto.DateTimeFormatConstants;
 import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.StatsRequestDto;
 import ru.practicum.dto.StatsResponseDto;
 
-import java.util.HashMap;
+import java.net.URI;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 
 /**
- * REST client for communicating with the statistics service.
+ * REST client for interacting with Stats Service.
  * <p>
- * Review fixes applied:
- * - Made Spring-managed component via @Component annotation
- * - Server URL injected from configuration via @Value
- * - RestTemplate injected via constructor (Spring DI)
- * </p>
+ * Provides operations to record views and retrieve statistics.
+ * The Stats Server URL is configured via {@code stats-server.url}.
  */
 @Component
 public class StatsClient {
 
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern(DateTimeFormatConstants.DATE_TIME_PATTERN);
+
     private final String serverUrl;
     private final RestTemplate restTemplate;
 
-    /**
-     * Constructor with Spring dependency injection.
-     *
-     * @param serverUrl    stats server URL from application properties (stats-server.url)
-     * @param restTemplate Spring-managed RestTemplate bean
-     */
+        /**
+         * Constructor with Spring dependency injection.
+         *
+         * @param serverUrl    Stats Server URL from configuration (stats-server.url)
+         * @param restTemplate Spring-managed RestTemplate bean
+         */
     public StatsClient(
             @Value("${stats-server.url}") String serverUrl,
             RestTemplate restTemplate
@@ -43,6 +49,11 @@ public class StatsClient {
         this.restTemplate = restTemplate;
     }
 
+        /**
+         * Records an endpoint view.
+         *
+         * @param endpointHitDto view data (app, uri, ip, timestamp)
+         */
     @SuppressWarnings("unchecked")
     public void hit(EndpointHitDto endpointHitDto) {
         HttpHeaders headers = new HttpHeaders();
@@ -59,41 +70,37 @@ public class StatsClient {
         );
     }
 
-    /**
-     * Retrieves statistics from the stats server.
-     * <p>
-     * Review fixes applied:
-     * - Created StatsRequestDto with @NotNull validation for start/end parameters
-     * - Changed return type from List<Object> to List<StatsResponseDto>
-     * </p>
-     *
-     * @param requestDto validated request containing start, end, uris, and unique flag
-     * @return list of statistics response DTOs
-     */
+        /**
+         * Returns statistics for the given parameters.
+         *
+         * @param requestDto period parameters, URIs, and uniqueness flag
+         * @return list of aggregated statistics
+         */
     @SuppressWarnings("unchecked")
     public List<StatsResponseDto> getStats(@Valid StatsRequestDto requestDto) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("start", requestDto.getStart());
-        params.put("end", requestDto.getEnd());
-        params.put("unique", requestDto.getUnique());
+        String start = requestDto.getStart().format(DATE_TIME_FORMATTER);
+        String end = requestDto.getEnd().format(DATE_TIME_FORMATTER);
+        Boolean unique = requestDto.getUnique() != null ? requestDto.getUnique() : false;
 
-        StringBuilder uri = new StringBuilder(
-                serverUrl + "/stats?start={start}&end={end}&unique={unique}"
-        );
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl(serverUrl + "/stats")
+                .queryParam("start", start)
+                .queryParam("end", end)
+                .queryParam("unique", unique);
 
         if (requestDto.getUris() != null && !requestDto.getUris().isEmpty()) {
-            params.put("uris", requestDto.getUris());
-            uri.append("&uris={uris}");
+            for (String uri : requestDto.getUris()) {
+                builder.queryParam("uris", uri);
+            }
         }
 
-        ResponseEntity<List<StatsResponseDto>> response =
-                restTemplate.exchange(
-                        uri.toString(),
-                        HttpMethod.GET,
-                        null,
-                        new ParameterizedTypeReference<List<StatsResponseDto>>() {},
-                        params
-                );
+        URI uri = builder.encode().build().toUri();
+
+        ResponseEntity<List<StatsResponseDto>> response = restTemplate.exchange(
+                uri,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<List<StatsResponseDto>>() {});
 
         return response.getBody();
     }

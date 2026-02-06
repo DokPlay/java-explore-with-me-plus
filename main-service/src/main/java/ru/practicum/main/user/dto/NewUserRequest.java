@@ -1,0 +1,38 @@
+package ru.practicum.main.user.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import ru.practicum.main.user.validation.ValidEmailDomainLabel;
+
+/**
+ * DTO for creating a new user.
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class NewUserRequest {
+
+    /**
+     * Email.
+     */
+    @NotBlank(message = "Email не может быть пустым")
+    @Email(message = "Некорректный формат email")
+    @Size(min = 6, max = 254, message = "Email должен быть от 6 до 254 символов")
+    @ValidEmailDomainLabel
+    private String email;
+
+    /**
+     * Name.
+     */
+    @NotBlank(message = "Имя не может быть пустым")
+    @Size(min = 2, max = 250, message = "Имя должно быть от 2 до 250 символов")
+    private String name;
+}
