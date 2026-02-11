@@ -63,4 +63,14 @@ public class Subscription {
     @Column(name = "created_on", nullable = false)
     @ToString.Include
     private LocalDateTime createdOn;
+
+    @ToString.Include(name = "followerId")
+    private Long followerIdForToString() {
+        return follower != null ? follower.getId() : null;
+    }
+
+    @ToString.Include(name = "followingId")
+    private Long followingIdForToString() {
+        return following != null ? following.getId() : null;
+    }
 }
