@@ -22,7 +22,6 @@ public class StatsServiceImpl implements StatsService {
 
     @Override
     @Transactional
-    @SuppressWarnings("unchecked")
     public void saveHit(EndpointHitDto endpointHitDto) {
         EndpointHit endpointHit = statsMapper.toEntity(endpointHitDto);
         statsRepository.save(endpointHit);

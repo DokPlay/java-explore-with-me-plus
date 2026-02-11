@@ -1,6 +1,5 @@
 package ru.practicum.client;
 
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -54,7 +53,6 @@ public class StatsClient {
          *
          * @param endpointHitDto view data (app, uri, ip, timestamp)
          */
-    @SuppressWarnings("unchecked")
     public void hit(EndpointHitDto endpointHitDto) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -76,8 +74,7 @@ public class StatsClient {
          * @param requestDto period parameters, URIs, and uniqueness flag
          * @return list of aggregated statistics
          */
-    @SuppressWarnings("unchecked")
-    public List<StatsResponseDto> getStats(@Valid StatsRequestDto requestDto) {
+    public List<StatsResponseDto> getStats(StatsRequestDto requestDto) {
         String start = requestDto.getStart().format(DATE_TIME_FORMATTER);
         String end = requestDto.getEnd().format(DATE_TIME_FORMATTER);
         Boolean unique = requestDto.getUnique() != null ? requestDto.getUnique() : false;
