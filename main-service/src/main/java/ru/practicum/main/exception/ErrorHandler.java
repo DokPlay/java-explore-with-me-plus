@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -211,24 +210,15 @@ public class ErrorHandler {
      * Извлекает детальную информацию об исключении
      */
     private List<String> getExceptionDetails(Throwable e) {
-        StringBuilder details = new StringBuilder();
-        details.append("Exception: ").append(e.getClass().getSimpleName())
-                .append("\nMessage: ").append(e.getMessage());
+        String details = "Exception: " + e.getClass().getSimpleName()
+                + "\nMessage: " + e.getMessage();
 
         if (e.getCause() != null) {
-            details.append("\nCause: ").append(e.getCause().getClass().getSimpleName())
-                    .append(" - ").append(e.getCause().getMessage());
+            details += "\nCause: " + e.getCause().getClass().getSimpleName()
+                    + " - " + e.getCause().getMessage();
         }
 
-        // Добавляем stack trace (первые 5 строк для отладки)
-        if (e.getStackTrace() != null && e.getStackTrace().length > 0) {
-            details.append("\nStack trace (top 5):");
-            Arrays.stream(e.getStackTrace())
-                    .limit(5)
-                    .forEach(stack -> details.append("\n  at ").append(stack));
-        }
-
-        return List.of(details.toString());
+        return List.of(details);
     }
 
     /**

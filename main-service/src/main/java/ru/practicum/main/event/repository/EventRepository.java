@@ -47,6 +47,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
          */
     boolean existsByCategoryId(Long categoryId);
 
+    /**
+     * Checks whether user has created at least one event.
+     *
+     * @param initiatorId initiator user ID
+     * @return true if user owns events
+     */
+    boolean existsByInitiatorId(Long initiatorId);
+
         /**
          * Searches events for admins with filters.
          *

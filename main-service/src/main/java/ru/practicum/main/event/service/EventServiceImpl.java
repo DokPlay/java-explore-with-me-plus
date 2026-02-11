@@ -107,6 +107,7 @@ public class EventServiceImpl implements EventService {
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
         List<Event> events = eventRepository.findAllByInitiatorId(userId, pageable).getContent();
+        enrichEventsWithViews(events);
 
         return eventMapper.toEventShortDtoList(events);
     }
@@ -144,6 +145,7 @@ public class EventServiceImpl implements EventService {
 
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
+        enrichEventWithViews(event);
 
         return eventMapper.toEventFullDto(event);
     }
@@ -205,6 +207,7 @@ public class EventServiceImpl implements EventService {
 
         List<Event> events = eventRepository.findEventsForAdmin(
                 users, states, categories, rangeStart, rangeEnd, pageable).getContent();
+        enrichEventsWithViews(events);
 
         return eventMapper.toEventFullDtoList(events);
     }
@@ -328,8 +331,7 @@ public class EventServiceImpl implements EventService {
         saveHit(request);
 
         // Fetch view statistics
-        Map<Long, Long> viewsMap = getViewsForEvents(events);
-        events.forEach(e -> e.setViews(viewsMap.getOrDefault(e.getId(), 0L)));
+        enrichEventsWithViews(events);
 
         // Apply sorting to the result and paginate when sorting by views
         if (sortByViews) {
@@ -356,8 +358,7 @@ public class EventServiceImpl implements EventService {
         saveHit(request);
 
         // Update event views from stats
-        Map<Long, Long> viewsMap = getViewsForEvents(List.of(event));
-        event.setViews(viewsMap.getOrDefault(eventId, 0L));
+        enrichEventWithViews(event);
 
         return eventMapper.toEventFullDto(event);
     }
@@ -366,6 +367,7 @@ public class EventServiceImpl implements EventService {
     public EventFullDto getEventById(Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
+        enrichEventWithViews(event);
         return eventMapper.toEventFullDto(event);
     }
 
@@ -438,6 +440,18 @@ public class EventServiceImpl implements EventService {
     private Long extractEventIdFromUri(String uri) {
         String[] parts = uri.split("/");
         return Long.parseLong(parts[parts.length - 1]);
+    }
+
+    private void enrichEventsWithViews(List<Event> events) {
+        if (events.isEmpty()) {
+            return;
+        }
+        Map<Long, Long> viewsMap = getViewsForEvents(events);
+        events.forEach(event -> event.setViews(viewsMap.getOrDefault(event.getId(), 0L)));
+    }
+
+    private void enrichEventWithViews(Event event) {
+        enrichEventsWithViews(List.of(event));
     }
 
     private void saveModerationLog(Event event, EventModerationAction action, String note) {
