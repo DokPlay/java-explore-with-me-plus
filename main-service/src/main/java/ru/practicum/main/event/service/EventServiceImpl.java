@@ -521,7 +521,7 @@ public class EventServiceImpl implements EventService {
             requestDto.setStart(start);
             requestDto.setEnd(LocalDateTime.now());
             requestDto.setUris(uris);
-            requestDto.setUnique(true);
+            requestDto.setUnique(false);
 
             List<ViewStatsDto> stats = statsClient.getStats(requestDto);
 
