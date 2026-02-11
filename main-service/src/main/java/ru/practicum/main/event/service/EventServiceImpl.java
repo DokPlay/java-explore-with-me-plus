@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.client.StatsClient;
 import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.StatsRequestDto;
-import ru.practicum.dto.StatsResponseDto;
+import ru.practicum.dto.ViewStatsDto;
 import ru.practicum.main.category.model.Category;
 import ru.practicum.main.category.repository.CategoryRepository;
 import ru.practicum.main.event.dto.EventFullDto;
@@ -422,12 +422,12 @@ public class EventServiceImpl implements EventService {
             requestDto.setUris(uris);
             requestDto.setUnique(true);
 
-            List<StatsResponseDto> stats = statsClient.getStats(requestDto);
+            List<ViewStatsDto> stats = statsClient.getStats(requestDto);
 
             return stats.stream()
                     .collect(Collectors.toMap(
                             s -> extractEventIdFromUri(s.getUri()),
-                            StatsResponseDto::getHits,
+                            ViewStatsDto::getHits,
                             (a, b) -> a));
         } catch (Exception e) {
             log.warn("Ошибка при получении статистики: {}", e.getMessage());
