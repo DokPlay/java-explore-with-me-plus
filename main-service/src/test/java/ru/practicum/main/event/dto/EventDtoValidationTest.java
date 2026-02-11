@@ -238,4 +238,37 @@ class EventDtoValidationTest {
             assertThat(violations).isEmpty();
         }
     }
+
+    @Nested
+    @DisplayName("UpdateEventAdminRequest Validation")
+    class UpdateEventAdminRequestValidationTests {
+
+        @Test
+        @DisplayName("moderationNote из одних пробелов должна нарушать валидацию")
+        void blankModerationNote_HasViolation() {
+            UpdateEventAdminRequest dto = UpdateEventAdminRequest.builder()
+                    .moderationNote("   ")
+                    .build();
+
+            Set<ConstraintViolation<UpdateEventAdminRequest>> violations = validator.validate(dto);
+
+            assertThat(violations)
+                    .extracting(v -> v.getPropertyPath().toString())
+                    .contains("moderationNote");
+        }
+
+        @Test
+        @DisplayName("moderationNote null не должна нарушать валидацию")
+        void nullModerationNote_NoViolations() {
+            UpdateEventAdminRequest dto = UpdateEventAdminRequest.builder()
+                    .moderationNote(null)
+                    .build();
+
+            Set<ConstraintViolation<UpdateEventAdminRequest>> violations = validator.validate(dto);
+
+            assertThat(violations)
+                    .extracting(v -> v.getPropertyPath().toString())
+                    .doesNotContain("moderationNote");
+        }
+    }
 }

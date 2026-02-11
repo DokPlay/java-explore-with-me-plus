@@ -512,6 +512,32 @@ class EventServiceImplTest {
             assertThat(result).isNotNull();
             verify(eventRepository).save(any(Event.class));
         }
+
+        @Test
+        @DisplayName("Должен нормализовать moderationNote в null при значении только из пробелов")
+        void updateEventByAdmin_BlankModerationNote_NormalizedToNull() {
+            UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
+            updateRequest.setModerationNote("   ");
+
+            when(eventRepository.findById(1L)).thenReturn(Optional.of(testEvent));
+            doAnswer(invocation -> {
+                UpdateEventAdminRequest dto = invocation.getArgument(0);
+                Event event = invocation.getArgument(1);
+                event.setModerationNote(dto.getModerationNote());
+                return null;
+            }).when(eventMapper).updateEventFromAdminRequest(any(UpdateEventAdminRequest.class), any(Event.class));
+            when(eventRepository.save(any(Event.class))).thenAnswer(inv -> {
+                Event saved = inv.getArgument(0);
+                assertThat(saved.getModerationNote()).isNull();
+                return saved;
+            });
+            when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
+
+            EventFullDto result = eventService.updateEventByAdmin(1L, updateRequest);
+
+            assertThat(result).isNotNull();
+            verify(eventRepository).save(any(Event.class));
+        }
     }
 
     @Nested

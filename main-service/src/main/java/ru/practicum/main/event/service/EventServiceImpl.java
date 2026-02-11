@@ -229,6 +229,9 @@ public class EventServiceImpl implements EventService {
         }
 
         eventMapper.updateEventFromAdminRequest(updateRequest, event);
+        if (updateRequest.getModerationNote() != null) {
+            event.setModerationNote(normalizeNote(updateRequest.getModerationNote()));
+        }
 
         if (updateRequest.getStateAction() != null) {
             switch (updateRequest.getStateAction()) {

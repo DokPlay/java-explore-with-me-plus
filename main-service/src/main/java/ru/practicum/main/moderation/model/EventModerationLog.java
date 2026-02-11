@@ -16,6 +16,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.moderation.status.EventModerationAction;
 
@@ -31,6 +32,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(onlyExplicitlyIncluded = true)
 public class EventModerationLog {
 
     /**
@@ -38,6 +40,7 @@ public class EventModerationLog {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @ToString.Include
     private Long id;
 
     /**
@@ -52,6 +55,7 @@ public class EventModerationLog {
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @ToString.Include
     private EventModerationAction action;
 
     /**
@@ -64,5 +68,6 @@ public class EventModerationLog {
      * Timestamp when the action was performed.
      */
     @Column(name = "acted_on", nullable = false)
+    @ToString.Include
     private LocalDateTime actedOn;
 }

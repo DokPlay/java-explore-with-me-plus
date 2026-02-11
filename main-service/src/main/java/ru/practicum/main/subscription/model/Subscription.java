@@ -15,6 +15,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import ru.practicum.main.user.model.User;
 
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(onlyExplicitlyIncluded = true)
 public class Subscription {
 
     /**
@@ -38,6 +40,7 @@ public class Subscription {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @ToString.Include
     private Long id;
 
     /**
@@ -58,5 +61,6 @@ public class Subscription {
      * Subscription creation timestamp.
      */
     @Column(name = "created_on", nullable = false)
+    @ToString.Include
     private LocalDateTime createdOn;
 }

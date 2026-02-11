@@ -16,6 +16,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import ru.practicum.main.comment.status.CommentStatus;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.user.model.User;
@@ -32,6 +33,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(onlyExplicitlyIncluded = true)
 public class Comment {
 
     /**
@@ -39,6 +41,7 @@ public class Comment {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @ToString.Include
     private Long id;
 
     /**
@@ -65,6 +68,7 @@ public class Comment {
      * Creation timestamp.
      */
     @Column(name = "created_on", nullable = false)
+    @ToString.Include
     private LocalDateTime createdOn;
 
     /**
@@ -79,6 +83,7 @@ public class Comment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
+    @ToString.Include
     private CommentStatus status = CommentStatus.PENDING;
 
     /**

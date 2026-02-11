@@ -1,6 +1,7 @@
 package ru.practicum.main.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -79,6 +80,7 @@ public class UpdateEventAdminRequest {
     /**
      * Moderation note from administrator.
      */
+    @Pattern(regexp = ".*\\S.*", message = "Комментарий модерации не может состоять только из пробелов")
     @Size(max = 1000, message = "Комментарий модерации не должен превышать 1000 символов")
     private String moderationNote;
 

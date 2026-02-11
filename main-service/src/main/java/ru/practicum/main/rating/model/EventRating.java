@@ -17,6 +17,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.rating.status.VoteType;
 import ru.practicum.main.user.model.User;
@@ -35,6 +36,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(onlyExplicitlyIncluded = true)
 public class EventRating {
 
     /**
@@ -42,6 +44,7 @@ public class EventRating {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @ToString.Include
     private Long id;
 
     /**
@@ -63,17 +66,20 @@ public class EventRating {
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @ToString.Include
     private VoteType vote;
 
     /**
      * Creation timestamp.
      */
     @Column(name = "created_on", nullable = false)
+    @ToString.Include
     private LocalDateTime createdOn;
 
     /**
      * Last update timestamp.
      */
     @Column(name = "updated_on")
+    @ToString.Include
     private LocalDateTime updatedOn;
 }
