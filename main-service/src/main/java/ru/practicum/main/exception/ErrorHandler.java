@@ -3,7 +3,9 @@ package ru.practicum.main.exception;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,7 +13,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
  *     <li>{@link MissingServletRequestParameterException} — 400</li>
  *     <li>{@link NotFoundException} — 404</li>
  *     <li>{@link ConflictException} — 409</li>
+ *     <li>{@link OptimisticLockingFailureException} — 409</li>
  *     <li>{@link DataIntegrityViolationException} — 409</li>
  *     <li>{@link Exception} — 500</li>
  * </ul>
@@ -179,6 +181,24 @@ public class ErrorHandler {
     }
 
     /**
+     * Handles optimistic locking conflicts during concurrent updates.
+     */
+    @ExceptionHandler({OptimisticLockingFailureException.class, ObjectOptimisticLockingFailureException.class})
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiError handleOptimisticLockingFailureException(RuntimeException e) {
+        String rootCauseMessage = getRootCauseMessage(e);
+        log.warn("OptimisticLockingFailureException: {}", rootCauseMessage, e);
+
+        return buildApiError(
+                "OPTIMISTIC_LOCK_CONFLICT",
+                "Конфликт конкурентного обновления",
+                "Ресурс был изменен параллельно, повторите запрос",
+                HttpStatus.CONFLICT,
+                getExceptionDetails(e)
+        );
+    }
+
+    /**
      * Handles unexpected exceptions.
      */
     @ExceptionHandler(Exception.class)
@@ -211,24 +231,15 @@ public class ErrorHandler {
      * Извлекает детальную информацию об исключении
      */
     private List<String> getExceptionDetails(Throwable e) {
-        StringBuilder details = new StringBuilder();
-        details.append("Exception: ").append(e.getClass().getSimpleName())
-                .append("\nMessage: ").append(e.getMessage());
+        String details = "Exception: " + e.getClass().getSimpleName()
+                + "\nMessage: " + e.getMessage();
 
         if (e.getCause() != null) {
-            details.append("\nCause: ").append(e.getCause().getClass().getSimpleName())
-                    .append(" - ").append(e.getCause().getMessage());
+            details += "\nCause: " + e.getCause().getClass().getSimpleName()
+                    + " - " + e.getCause().getMessage();
         }
 
-        // Добавляем stack trace (первые 5 строк для отладки)
-        if (e.getStackTrace() != null && e.getStackTrace().length > 0) {
-            details.append("\nStack trace (top 5):");
-            Arrays.stream(e.getStackTrace())
-                    .limit(5)
-                    .forEach(stack -> details.append("\n  at ").append(stack));
-        }
-
-        return List.of(details.toString());
+        return List.of(details);
     }
 
     /**

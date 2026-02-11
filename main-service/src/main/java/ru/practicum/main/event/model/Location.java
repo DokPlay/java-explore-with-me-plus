@@ -1,6 +1,8 @@
 package ru.practicum.main.event.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,10 +23,14 @@ public class Location {
     /**
      * Latitude.
      */
+    @NotNull
+    @Column(name = "lat", nullable = false)
     private Float lat;
 
     /**
      * Longitude.
      */
+    @NotNull
+    @Column(name = "lon", nullable = false)
     private Float lon;
 }

@@ -20,6 +20,7 @@ import ru.practicum.main.event.dto.EventFullDto;
 import ru.practicum.main.event.dto.UpdateEventAdminRequest;
 import ru.practicum.main.event.model.EventState;
 import ru.practicum.main.event.service.EventService;
+import ru.practicum.main.moderation.dto.EventModerationLogDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -66,5 +67,18 @@ public class AdminEventController {
             @RequestBody @Valid UpdateEventAdminRequest updateRequest) {
         log.info("PATCH /admin/events/{} - Обновление события администратором", eventId);
         return eventService.updateEventByAdmin(eventId, updateRequest);
+    }
+
+    /**
+     * Returns moderation history for an event.
+     */
+    @GetMapping("/{eventId}/moderation-history")
+    @ResponseStatus(HttpStatus.OK)
+    public List<EventModerationLogDto> getModerationHistory(
+            @PathVariable Long eventId,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+            @RequestParam(defaultValue = "10") @Positive int size) {
+        log.info("GET /admin/events/{}/moderation-history - История модерации", eventId);
+        return eventService.getEventModerationHistory(eventId, from, size);
     }
 }

@@ -1,6 +1,8 @@
 package ru.practicum.main.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -47,6 +49,7 @@ public class UpdateEventAdminRequest {
     /**
      * Updated coordinates.
      */
+    @Valid
     private LocationDto location;
 
     /**
@@ -75,6 +78,13 @@ public class UpdateEventAdminRequest {
      */
     @Size(min = 3, max = 120, message = "Заголовок должен быть от 3 до 120 символов")
     private String title;
+
+    /**
+     * Moderation note from administrator.
+     */
+    @Pattern(regexp = ".*\\S.*", message = "Комментарий модерации не может состоять только из пробелов")
+    @Size(max = 1000, message = "Комментарий модерации не должен превышать 1000 символов")
+    private String moderationNote;
 
     /**
      * Administrator actions for an event.

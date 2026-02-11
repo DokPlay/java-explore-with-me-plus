@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.main.category.dto.CategoryDto;
+import ru.practicum.main.category.mapper.CategoryMapper;
 import ru.practicum.main.category.model.Category;
 import ru.practicum.main.category.repository.CategoryRepository;
 import ru.practicum.main.event.repository.EventRepository;
@@ -21,6 +22,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository repository;
     private final EventRepository eventRepository;
+    private final CategoryMapper categoryMapper;
 
     @Override
     public CategoryDto create(CategoryDto dto) {
@@ -31,9 +33,9 @@ public class CategoryServiceImpl implements CategoryService {
             throw new ConflictException("Категория с именем '" + dto.getName() + "' уже существует");
         }
 
-        Category saved = repository.save(Category.builder().name(dto.getName()).build());
+        Category saved = repository.save(categoryMapper.toEntity(dto));
         log.info("Категория создана успешно с id: {}", saved.getId());
-        return toDto(saved);
+        return categoryMapper.toDto(saved);
     }
 
     @Override
@@ -54,7 +56,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setName(dto.getName());
         Category updated = repository.save(category);
         log.info("Категория с id={} успешно обновлена", catId);
-        return toDto(updated);
+        return categoryMapper.toDto(updated);
     }
 
     @Override
@@ -79,7 +81,7 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDto getById(Long catId) {
         log.info("Получение категории по id: {}", catId);
 
-        return toDto(repository.findById(catId)
+        return categoryMapper.toDto(repository.findById(catId)
                 .orElseThrow(() -> {
                     log.warn("Категория с id={} не найдена", catId);
                     return new NotFoundException("Категория с id=" + catId + " не найдена");
@@ -92,16 +94,9 @@ public class CategoryServiceImpl implements CategoryService {
 
         PaginationValidator.validatePagination(from, size);
         List<CategoryDto> result = repository.findAll(PageRequest.of(from / size, size))
-                .stream().map(this::toDto).toList();
+                .stream().map(categoryMapper::toDto).toList();
 
         log.info("Найдено {} категорий", result.size());
         return result;
-    }
-
-    private CategoryDto toDto(Category c) {
-        return CategoryDto.builder()
-                .id(c.getId())
-                .name(c.getName())
-                .build();
     }
 }

@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -138,4 +139,17 @@ public class Event {
      */
     @Builder.Default
     private Long views = 0L;
+
+    /**
+     * Optimistic-lock field to protect concurrent updates.
+     */
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    /**
+     * Optional moderation note from administrator.
+     */
+    @Column(name = "moderation_note", length = 1000)
+    private String moderationNote;
 }

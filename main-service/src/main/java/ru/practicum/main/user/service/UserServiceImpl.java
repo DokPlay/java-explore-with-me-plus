@@ -1,29 +1,35 @@
 package ru.practicum.main.user.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
+import ru.practicum.main.exception.ValidationException;
 import ru.practicum.main.user.dto.NewUserRequest;
 import ru.practicum.main.user.dto.UserDto;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
 import ru.practicum.main.util.PaginationValidator;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Slf4j
+@Validated
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final EventRepository eventRepository;
 
     @Override
     @Transactional
@@ -47,6 +53,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserDto> getUsers(List<Long> ids, int from, int size) {
         PaginationValidator.validatePagination(from, size);
+        validateIdsFilter(ids);
         if (ids != null && ids.isEmpty()) {
             return List.of();
         }
@@ -66,6 +73,9 @@ public class UserServiceImpl implements UserService {
         if (!userRepository.existsById(userId)) {
             throw new NotFoundException("Пользователь с id=" + userId + " не найден");
         }
+        if (eventRepository.existsByInitiatorId(userId)) {
+            throw new ConflictException("Нельзя удалить пользователя с опубликованными или созданными событиями");
+        }
         userRepository.deleteById(userId);
     }
 
@@ -75,5 +85,17 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .name(user.getName())
                 .build();
+    }
+
+    private void validateIdsFilter(List<Long> ids) {
+        if (ids == null) {
+            return;
+        }
+        if (ids.stream().anyMatch(Objects::isNull)) {
+            throw new ValidationException("Список ids не должен содержать null");
+        }
+        if (ids.stream().anyMatch(id -> id <= 0)) {
+            throw new ValidationException("Идентификаторы в списке ids должны быть больше 0");
+        }
     }
 }
