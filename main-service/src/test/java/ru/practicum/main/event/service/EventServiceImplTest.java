@@ -25,6 +25,11 @@ import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
+import ru.practicum.main.moderation.dto.EventModerationLogDto;
+import ru.practicum.main.moderation.mapper.EventModerationLogMapper;
+import ru.practicum.main.moderation.model.EventModerationLog;
+import ru.practicum.main.moderation.repository.EventModerationLogRepository;
+import ru.practicum.main.moderation.status.EventModerationAction;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
 
@@ -59,6 +64,12 @@ class EventServiceImplTest {
 
     @Mock
     private StatsClient statsClient;
+
+    @Mock
+    private EventModerationLogRepository eventModerationLogRepository;
+
+    @Mock
+    private EventModerationLogMapper eventModerationLogMapper;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -500,6 +511,49 @@ class EventServiceImplTest {
 
             assertThat(result).isNotNull();
             verify(eventRepository).save(any(Event.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("Admin API: getEventModerationHistory")
+    class GetEventModerationHistoryTests {
+
+        @Test
+        @DisplayName("Должен вернуть историю модерации события")
+        void getEventModerationHistory_success() {
+            EventModerationLog logEntry = EventModerationLog.builder()
+                    .id(1L)
+                    .event(testEvent)
+                    .action(EventModerationAction.PUBLISH)
+                    .note("Approved")
+                    .actedOn(LocalDateTime.now())
+                    .build();
+            EventModerationLogDto dto = EventModerationLogDto.builder()
+                    .id(1L)
+                    .eventId(1L)
+                    .action(EventModerationAction.PUBLISH)
+                    .note("Approved")
+                    .build();
+
+            when(eventRepository.existsById(1L)).thenReturn(true);
+            when(eventModerationLogRepository.findAllByEventId(anyLong(), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(logEntry)));
+            when(eventModerationLogMapper.toDtoList(any())).thenReturn(List.of(dto));
+
+            List<EventModerationLogDto> result = eventService.getEventModerationHistory(1L, 0, 10);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getAction()).isEqualTo(EventModerationAction.PUBLISH);
+        }
+
+        @Test
+        @DisplayName("Должен выбросить NotFoundException если событие не найдено")
+        void getEventModerationHistory_eventNotFound_throwsNotFound() {
+            when(eventRepository.existsById(1L)).thenReturn(false);
+
+            assertThatThrownBy(() -> eventService.getEventModerationHistory(1L, 0, 10))
+                    .isInstanceOf(NotFoundException.class)
+                    .hasMessageContaining("Событие не найдено");
         }
     }
 

@@ -138,4 +138,10 @@ public class Event {
      */
     @Builder.Default
     private Long views = 0L;
+
+    /**
+     * Optional moderation note from administrator.
+     */
+    @Column(name = "moderation_note", length = 1000)
+    private String moderationNote;
 }

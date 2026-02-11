@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "5f2f7f52-7d69-4c9f-8f38-5aa8d986d8f6",
-    "name": "EWM Feature - Comments",
+    "name": "EWM Feature - Stage 3 Additional Functionality",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -640,12 +640,706 @@
           }
         }
       ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "POST /users/{userId}/subscriptions - happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const main=async()=>{",
+                  "const b=pm.collectionVariables.get('baseUrl');",
+                  "const q=(r)=>new Promise((ok,er)=>pm.sendRequest(r,(e,s)=>e?er(e):ok(s)));",
+                  "const s=${Date.now()}_;",
+                  "const mk=async(n,e)=>q({url:${b}/admin/users,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({name:n,email:e})}});",
+                  "const f=await mk(SubFollower ,sub_follower_@mail.com); if(f.code!==201) throw new Error('follower');",
+                  "const t=await mk(SubTarget ,sub_target_@mail.com); if(t.code!==201) throw new Error('target');",
+                  "pm.collectionVariables.set('subFollowerId',f.json().id);",
+                  "pm.collectionVariables.set('subTargetId',t.json().id);",
+                  "};",
+                  "main().catch(e=>{throw e;});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{subFollowerId}}/subscriptions?targetUserId={{subTargetId}}",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/subscriptions - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/subscriptions?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "DELETE /users/{userId}/subscriptions - invalid targetUserId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/subscriptions?targetUserId=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/subscriptions/followers - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/subscriptions/followers?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rating Events",
+      "item": [
+        {
+          "name": "PUT /users/{userId}/events/{eventId}/rating - happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const main=async()=>{",
+                  "const b=pm.collectionVariables.get('baseUrl');",
+                  "const q=(r)=>new Promise((ok,er)=>pm.sendRequest(r,(e,s)=>e?er(e):ok(s)));",
+                  "const s=${Date.now()}_;",
+                  "const d=new Date(Date.now()+6*60*60*1000); const p=n=>String(n).padStart(2,'0');",
+                  "const dt=${d.getFullYear()}-- ::;",
+                  "const mk=async(n,e)=>q({url:${b}/admin/users,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({name:n,email:e})}});",
+                  "const u1=await mk(RateInit ,\rate_init_@mail.com); if(u1.code!==201) throw new Error('u1');",
+                  "const u2=await mk(RateUser ,\rate_user_@mail.com); if(u2.code!==201) throw new Error('u2');",
+                  "const cat=await q({url:${b}/admin/categories,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({name:RateCat })}}); if(cat.code!==201) throw new Error('cat');",
+                  "const ev=await q({url:${b}/users//events,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({title:RateEv ,annotation:'Rating annotation text long enough.',description:'Rating description text long enough for validation checks.',category:cat.json().id,eventDate:dt,location:{lat:55.75,lon:37.61},paid:false,participantLimit:10,requestModeration:true})}}); if(ev.code!==201) throw new Error('event');",
+                  "const eid=ev.json().id;",
+                  "const pub=await q({url:${b}/admin/events/,method:'PATCH',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({stateAction:'PUBLISH_EVENT',moderationNote:'Publish for rating'})}}); if(pub.code!==200) throw new Error('publish');",
+                  "pm.collectionVariables.set('ratingUserId',u2.json().id);",
+                  "pm.collectionVariables.set('ratingEventId',eid);",
+                  "};",
+                  "main().catch(e=>{throw e;});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{ratingUserId}}/events/{{ratingEventId}}/rating",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"vote\":\"LIKE\"}"
+            }
+          }
+        },
+        {
+          "name": "GET /events/{eventId}/rating - happy path",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/events/{{ratingEventId}}/rating",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "PUT /users/{userId}/events/{eventId}/rating - missing vote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/events/1/rating",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /users/{userId}/events/{eventId}/rating - invalid eventId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/events/0/rating",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/ratings - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/ratings?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Location Processing",
+      "item": [
+        {
+          "name": "POST /admin/locations - happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const s=${Date.now()}_;",
+                  "pm.collectionVariables.set('locationName',Managed location );"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const b=pm.response.json();",
+                  "pm.collectionVariables.set('managedLocationId',b.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"{{locationName}}\",\"lat\":55.7558,\"lon\":37.6176}"
+            }
+          }
+        },
+        {
+          "name": "GET /locations - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/locations?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "PATCH /admin/locations/{locationId} - invalid locationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations/0",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /admin/locations/{locationId} - invalid locationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations/0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /admin/locations/{locationId} - invalid locationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations/0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /admin/locations - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /locations/{locationId} - invalid locationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/locations/0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Moderation Enhancement",
+      "item": [
+        {
+          "name": "PATCH /admin/events/{eventId} - moderation note happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const main=async()=>{",
+                  "const b=pm.collectionVariables.get('baseUrl');",
+                  "const q=(r)=>new Promise((ok,er)=>pm.sendRequest(r,(e,s)=>e?er(e):ok(s)));",
+                  "const s=${Date.now()}_;",
+                  "const d=new Date(Date.now()+6*60*60*1000); const p=n=>String(n).padStart(2,'0');",
+                  "const dt=${d.getFullYear()}-- ::;",
+                  "const u=await q({url:${b}/admin/users,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({name:ModInit ,email:mod_init_@mail.com})}}); if(u.code!==201) throw new Error('u');",
+                  "const cat=await q({url:${b}/admin/categories,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({name:ModCat })}}); if(cat.code!==201) throw new Error('cat');",
+                  "const ev=await q({url:${b}/users//events,method:'POST',header:{'Content-Type':'application/json'},body:{mode:'raw',raw:JSON.stringify({title:ModEv ,annotation:'Moderation annotation text long enough.',description:'Moderation description text long enough for validation checks.',category:cat.json().id,eventDate:dt,location:{lat:48.85,lon:2.35},paid:false,participantLimit:20,requestModeration:true})}}); if(ev.code!==201) throw new Error('event');",
+                  "pm.collectionVariables.set('moderationEventId',ev.json().id);",
+                  "};",
+                  "main().catch(e=>{throw e;});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/events/{{moderationEventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"stateAction\":\"PUBLISH_EVENT\",\"moderationNote\":\"Published after moderation review\"}"
+            }
+          }
+        },
+        {
+          "name": "GET /admin/events/{eventId}/moderation-history - happy path",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/events/{{moderationEventId}}/moderation-history?from=0&size=10",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /admin/events/{eventId}/moderation-history - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/events/1/moderation-history?from=-1&size=10",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        }
+      ]
     }
   ],
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8080"
+    },
+    {
+      "key": "subFollowerId",
+      "value": ""
+    },
+    {
+      "key": "subTargetId",
+      "value": ""
+    },
+    {
+      "key": "ratingUserId",
+      "value": ""
+    },
+    {
+      "key": "ratingEventId",
+      "value": ""
+    },
+    {
+      "key": "managedLocationId",
+      "value": ""
+    },
+    {
+      "key": "locationName",
+      "value": ""
+    },
+    {
+      "key": "moderationEventId",
+      "value": ""
     }
   ]
 }

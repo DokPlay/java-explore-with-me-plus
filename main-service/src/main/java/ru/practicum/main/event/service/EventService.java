@@ -6,6 +6,7 @@ import ru.practicum.main.event.dto.NewEventDto;
 import ru.practicum.main.event.dto.UpdateEventAdminRequest;
 import ru.practicum.main.event.dto.UpdateEventUserRequest;
 import ru.practicum.main.event.model.EventState;
+import ru.practicum.main.moderation.dto.EventModerationLogDto;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -117,6 +118,16 @@ public interface EventService {
          * @throws ru.practicum.main.exception.ConflictException if business rules are violated
          */
     EventFullDto updateEventByAdmin(Long eventId, UpdateEventAdminRequest updateRequest);
+
+        /**
+         * Returns event moderation history for administrators.
+         *
+         * @param eventId event id
+         * @param from    start index for pagination
+         * @param size    page size
+         * @return list of moderation history entries
+         */
+    List<EventModerationLogDto> getEventModerationHistory(Long eventId, int from, int size);
 
         // Public API — access to published events without authorization
 

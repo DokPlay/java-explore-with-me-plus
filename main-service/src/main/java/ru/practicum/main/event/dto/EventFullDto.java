@@ -104,4 +104,9 @@ public class EventFullDto {
      * View count.
      */
     private Long views;
+
+    /**
+     * Optional moderation note.
+     */
+    private String moderationNote;
 }

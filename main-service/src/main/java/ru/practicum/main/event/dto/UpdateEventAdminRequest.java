@@ -77,6 +77,12 @@ public class UpdateEventAdminRequest {
     private String title;
 
     /**
+     * Moderation note from administrator.
+     */
+    @Size(max = 1000, message = "Комментарий модерации не должен превышать 1000 символов")
+    private String moderationNote;
+
+    /**
      * Administrator actions for an event.
      */
     public enum StateAction {

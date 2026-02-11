@@ -26,9 +26,13 @@ import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
+import ru.practicum.main.moderation.dto.EventModerationLogDto;
+import ru.practicum.main.moderation.mapper.EventModerationLogMapper;
+import ru.practicum.main.moderation.model.EventModerationLog;
+import ru.practicum.main.moderation.repository.EventModerationLogRepository;
+import ru.practicum.main.moderation.status.EventModerationAction;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
-
 import ru.practicum.main.util.PaginationValidator;
 
 import java.time.LocalDateTime;
@@ -83,11 +87,15 @@ public class EventServiceImpl implements EventService {
     /** Minimum time before the event for admin publication (hours) */
     private static final int HOURS_BEFORE_EVENT_ADMIN = 1;
 
+    private static final String DEFAULT_REJECT_REASON = "Отклонено администратором";
+
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final EventMapper eventMapper;
     private final StatsClient statsClient;
+    private final EventModerationLogRepository eventModerationLogRepository;
+    private final EventModerationLogMapper eventModerationLogMapper;
 
     // Private API — operations for authorized users
 
@@ -234,12 +242,20 @@ public class EventServiceImpl implements EventService {
                     }
                     event.setState(EventState.PUBLISHED);
                     event.setPublishedOn(LocalDateTime.now());
+                    String note = normalizeNote(updateRequest.getModerationNote());
+                    event.setModerationNote(note);
+                    saveModerationLog(event, EventModerationAction.PUBLISH, note);
                 }
                 case REJECT_EVENT -> {
                     if (event.getState() == EventState.PUBLISHED) {
                         throw new ConflictException("Нельзя отклонить опубликованное событие");
                     }
+                    String note = hasText(updateRequest.getModerationNote())
+                            ? updateRequest.getModerationNote().trim()
+                            : DEFAULT_REJECT_REASON;
                     event.setState(EventState.CANCELED);
+                    event.setModerationNote(note);
+                    saveModerationLog(event, EventModerationAction.REJECT, note);
                 }
             }
         }
@@ -248,6 +264,26 @@ public class EventServiceImpl implements EventService {
         log.info("Событие обновлено администратором: id={}", updatedEvent.getId());
 
         return eventMapper.toEventFullDto(updatedEvent);
+    }
+
+    @Override
+    public List<EventModerationLogDto> getEventModerationHistory(Long eventId, int from, int size) {
+        log.info("Получение истории модерации события eventId={}", eventId);
+        PaginationValidator.validatePagination(from, size);
+
+        if (!eventRepository.existsById(eventId)) {
+            throw new NotFoundException("Событие не найдено: id=" + eventId);
+        }
+
+        Pageable pageable = PageRequest.of(
+                from / size,
+                size,
+                Sort.by("actedOn").descending().and(Sort.by("id").descending())
+        );
+
+        List<EventModerationLog> history = eventModerationLogRepository.findAllByEventId(eventId, pageable)
+                .getContent();
+        return eventModerationLogMapper.toDtoList(history);
     }
 
     // Public API — public operations
@@ -399,5 +435,23 @@ public class EventServiceImpl implements EventService {
     private Long extractEventIdFromUri(String uri) {
         String[] parts = uri.split("/");
         return Long.parseLong(parts[parts.length - 1]);
+    }
+
+    private void saveModerationLog(Event event, EventModerationAction action, String note) {
+        EventModerationLog logEntry = EventModerationLog.builder()
+                .event(event)
+                .action(action)
+                .note(note)
+                .actedOn(LocalDateTime.now())
+                .build();
+        eventModerationLogRepository.save(logEntry);
+    }
+
+    private String normalizeNote(String value) {
+        return hasText(value) ? value.trim() : null;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
