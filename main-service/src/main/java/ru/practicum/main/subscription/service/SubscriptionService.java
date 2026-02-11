@@ -1,5 +1,6 @@
 package ru.practicum.main.subscription.service;
 
+import ru.practicum.main.event.dto.EventShortDto;
 import ru.practicum.main.subscription.dto.SubscriptionDto;
 
 import java.util.List;
@@ -28,4 +29,9 @@ public interface SubscriptionService {
      * Returns followers of a user.
      */
     List<SubscriptionDto> getFollowers(Long userId, int from, int size);
+
+    /**
+     * Returns published events of users the current user follows.
+     */
+    List<EventShortDto> getFollowingEvents(Long followerId, String sort, int from, int size);
 }

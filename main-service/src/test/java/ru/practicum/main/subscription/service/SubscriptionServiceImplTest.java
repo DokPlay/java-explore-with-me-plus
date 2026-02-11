@@ -10,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import ru.practicum.main.event.dto.EventShortDto;
+import ru.practicum.main.event.service.EventService;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
@@ -26,6 +28,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -46,6 +49,9 @@ class SubscriptionServiceImplTest {
 
     @Mock
     private SubscriptionMapper subscriptionMapper;
+
+    @Mock
+    private EventService eventService;
 
     @InjectMocks
     private SubscriptionServiceImpl subscriptionService;
@@ -189,6 +195,34 @@ class SubscriptionServiceImplTest {
             assertThatThrownBy(() -> subscriptionService.getFollowing(1L, 0, 0))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("size must be");
+        }
+
+        @Test
+        @DisplayName("Должен вернуть ленту событий подписок")
+        void getFollowingEvents_success() {
+            EventShortDto event = EventShortDto.builder().id(10L).title("From following").build();
+
+            when(userRepository.existsById(1L)).thenReturn(true);
+            when(subscriptionRepository.findFollowingIdsByFollowerId(1L)).thenReturn(List.of(2L, 3L));
+            when(eventService.getPublishedEventsByInitiators(List.of(2L, 3L), "RATING", 0, 10))
+                    .thenReturn(List.of(event));
+
+            List<EventShortDto> result = subscriptionService.getFollowingEvents(1L, "RATING", 0, 10);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst().getId()).isEqualTo(10L);
+        }
+
+        @Test
+        @DisplayName("Должен вернуть пустую ленту, если подписок нет")
+        void getFollowingEvents_noSubscriptions_returnsEmpty() {
+            when(userRepository.existsById(1L)).thenReturn(true);
+            when(subscriptionRepository.findFollowingIdsByFollowerId(1L)).thenReturn(List.of());
+
+            List<EventShortDto> result = subscriptionService.getFollowingEvents(1L, null, 0, 10);
+
+            assertThat(result).isEmpty();
+            verify(eventService, never()).getPublishedEventsByInitiators(any(), any(), anyInt(), anyInt());
         }
     }
 }

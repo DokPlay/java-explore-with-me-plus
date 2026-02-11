@@ -30,6 +30,11 @@ public interface EventRepository extends JpaRepository<Event, Long> {
          */
     Page<Event> findAllByInitiatorId(Long initiatorId, Pageable pageable);
 
+    /**
+     * Returns published events for a list of initiators.
+     */
+    Page<Event> findAllByInitiatorIdInAndState(List<Long> initiatorIds, EventState state, Pageable pageable);
+
         /**
          * Finds an event by ID and initiator.
          *
@@ -109,6 +114,20 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd,
             @Param("onlyAvailable") Boolean onlyAvailable,
+            Pageable pageable);
+
+    /**
+     * Returns published events located inside a coordinates bounding box.
+     */
+    @Query("SELECT e FROM Event e " +
+            "WHERE e.state = 'PUBLISHED' " +
+            "AND e.location.lat BETWEEN :minLat AND :maxLat " +
+            "AND e.location.lon BETWEEN :minLon AND :maxLon")
+    Page<Event> findPublishedEventsInBoundingBox(
+            @Param("minLat") Float minLat,
+            @Param("maxLat") Float maxLat,
+            @Param("minLon") Float minLon,
+            @Param("maxLon") Float maxLon,
             Pageable pageable);
 
         /**

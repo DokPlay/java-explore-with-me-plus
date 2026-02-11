@@ -45,6 +45,7 @@ public class ManagedLocationServiceImpl implements ManagedLocationService {
                 .name(dto.getName().trim())
                 .lat(dto.getLat())
                 .lon(dto.getLon())
+                .radiusKm(dto.getRadiusKm() != null ? dto.getRadiusKm() : 5.0d)
                 .active(true)
                 .createdOn(nowTruncatedToMillis())
                 .build();
@@ -73,6 +74,9 @@ public class ManagedLocationServiceImpl implements ManagedLocationService {
         }
         if (dto.getLon() != null) {
             location.setLon(dto.getLon());
+        }
+        if (dto.getRadiusKm() != null) {
+            location.setRadiusKm(dto.getRadiusKm());
         }
         if (dto.getActive() != null) {
             location.setActive(dto.getActive());

@@ -169,6 +169,21 @@ class CommentServiceImplTest {
                     .isInstanceOf(ConflictException.class)
                     .hasMessageContaining("Инициатор события");
         }
+
+        @Test
+        @DisplayName("Должен выбросить ConflictException при превышении лимита комментариев")
+        void createComment_limitExceeded_throwsConflict() {
+            NewCommentDto request = NewCommentDto.builder().text("Новый комментарий").build();
+
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+            when(eventRepository.findById(10L)).thenReturn(Optional.of(publishedEvent));
+            when(commentRepository.countByAuthorIdAndEventIdAndStatusNot(1L, 10L, CommentStatus.DELETED))
+                    .thenReturn(5L);
+
+            assertThatThrownBy(() -> commentService.createComment(1L, 10L, request))
+                    .isInstanceOf(ConflictException.class)
+                    .hasMessageContaining("Превышен лимит комментариев");
+        }
     }
 
     @Nested

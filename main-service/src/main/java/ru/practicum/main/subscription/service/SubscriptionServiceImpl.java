@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.main.event.dto.EventShortDto;
+import ru.practicum.main.event.service.EventService;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.subscription.dto.SubscriptionDto;
@@ -33,6 +35,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
     private final SubscriptionMapper subscriptionMapper;
+    private final EventService eventService;
 
     @Override
     @Transactional
@@ -106,6 +109,20 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         List<Subscription> subscriptions = subscriptionRepository.findAllByFollowingId(userId, pageable)
                 .getContent();
         return subscriptionMapper.toDtoList(subscriptions);
+    }
+
+    @Override
+    public List<EventShortDto> getFollowingEvents(Long followerId, String sort, int from, int size) {
+        log.info("Получение ленты подписок followerId={}, from={}, size={}", followerId, from, size);
+        PaginationValidator.validatePagination(from, size);
+        validateUserExists(followerId);
+
+        List<Long> followingIds = subscriptionRepository.findFollowingIdsByFollowerId(followerId);
+        if (followingIds.isEmpty()) {
+            return List.of();
+        }
+
+        return eventService.getPublishedEventsByInitiators(followingIds, sort, from, size);
     }
 
     private void validateUserExists(Long userId) {

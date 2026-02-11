@@ -1,5 +1,6 @@
 package ru.practicum.main.location.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.practicum.main.event.dto.EventShortDto;
+import ru.practicum.main.event.service.EventService;
 import ru.practicum.main.location.dto.ManagedLocationDto;
 import ru.practicum.main.location.service.ManagedLocationService;
 
@@ -28,6 +31,7 @@ import java.util.List;
 public class PublicLocationController {
 
     private final ManagedLocationService managedLocationService;
+    private final EventService eventService;
 
     /**
      * Returns active locations.
@@ -49,5 +53,21 @@ public class PublicLocationController {
     public ManagedLocationDto getLocationById(@PathVariable @Positive Long locationId) {
         log.info("GET /locations/{} - Получение активной локации", locationId);
         return managedLocationService.getPublicLocationById(locationId);
+    }
+
+    /**
+     * Returns published events near active managed location center.
+     */
+    @GetMapping("/{locationId}/events")
+    @ResponseStatus(HttpStatus.OK)
+    public List<EventShortDto> getEventsNearLocation(
+            @PathVariable @Positive Long locationId,
+            @RequestParam(required = false) @Positive Double radiusKm,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+            @RequestParam(defaultValue = "10") @Positive int size,
+            HttpServletRequest request) {
+        log.info("GET /locations/{}/events - Поиск событий в радиусе {} км", locationId, radiusKm);
+        return eventService.searchPublicEventsByLocation(locationId, radiusKm, sort, from, size, request);
     }
 }

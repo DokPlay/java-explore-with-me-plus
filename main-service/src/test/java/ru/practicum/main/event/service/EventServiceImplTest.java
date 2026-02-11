@@ -25,11 +25,14 @@ import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
+import ru.practicum.main.location.model.ManagedLocation;
+import ru.practicum.main.location.repository.ManagedLocationRepository;
 import ru.practicum.main.moderation.dto.EventModerationLogDto;
 import ru.practicum.main.moderation.mapper.EventModerationLogMapper;
 import ru.practicum.main.moderation.model.EventModerationLog;
 import ru.practicum.main.moderation.repository.EventModerationLogRepository;
 import ru.practicum.main.moderation.status.EventModerationAction;
+import ru.practicum.main.rating.repository.EventRatingRepository;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
 
@@ -39,6 +42,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
@@ -70,6 +74,12 @@ class EventServiceImplTest {
 
     @Mock
     private EventModerationLogMapper eventModerationLogMapper;
+
+    @Mock
+    private EventRatingRepository eventRatingRepository;
+
+    @Mock
+    private ManagedLocationRepository managedLocationRepository;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -715,6 +725,67 @@ class EventServiceImplTest {
                     mock(jakarta.servlet.http.HttpServletRequest.class)))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("from must be");
+        }
+    }
+
+    @Nested
+    @DisplayName("Additional Stage 3 methods")
+    class AdditionalMethodsTests {
+
+        @Test
+        @DisplayName("Должен вернуть пустой список для ленты подписок без initiatorIds")
+        void getPublishedEventsByInitiators_emptyInput_returnsEmpty() {
+            List<EventShortDto> result = eventService.getPublishedEventsByInitiators(List.of(), "RATING", 0, 10);
+
+            assertThat(result).isEmpty();
+            verify(eventRepository, never()).findAllByInitiatorIdInAndState(any(), any(), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("Должен выбросить NotFoundException при поиске событий по неактивной локации")
+        void searchPublicEventsByLocation_locationNotFound_throwsNotFound() {
+            when(managedLocationRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> eventService.searchPublicEventsByLocation(
+                    1L,
+                    5.0,
+                    "EVENT_DATE",
+                    0,
+                    10,
+                    mock(jakarta.servlet.http.HttpServletRequest.class)))
+                    .isInstanceOf(NotFoundException.class)
+                    .hasMessageContaining("Активная локация не найдена");
+        }
+
+        @Test
+        @DisplayName("Должен вернуть события в радиусе managed location")
+        void searchPublicEventsByLocation_success() {
+            ManagedLocation location = ManagedLocation.builder()
+                    .id(1L)
+                    .name("Center")
+                    .lat(55.75)
+                    .lon(37.62)
+                    .radiusKm(5.0)
+                    .active(true)
+                    .build();
+
+            testEvent.setState(EventState.PUBLISHED);
+            when(managedLocationRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(location));
+            when(eventRepository.findPublishedEventsInBoundingBox(anyFloat(), anyFloat(), anyFloat(), anyFloat(), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(testEvent)));
+            when(eventMapper.toEventShortDtoList(any())).thenReturn(List.of(testEventShortDto));
+
+            List<EventShortDto> result = eventService.searchPublicEventsByLocation(
+                    1L,
+                    null,
+                    "EVENT_DATE",
+                    0,
+                    10,
+                    mock(jakarta.servlet.http.HttpServletRequest.class)
+            );
+
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst().getId()).isEqualTo(1L);
         }
     }
 }

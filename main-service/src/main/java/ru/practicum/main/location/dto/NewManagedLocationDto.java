@@ -43,4 +43,11 @@ public class NewManagedLocationDto {
     @DecimalMin(value = "-180.0", message = "Долгота должна быть >= -180")
     @DecimalMax(value = "180.0", message = "Долгота должна быть <= 180")
     private Double lon;
+
+    /**
+     * Default search radius for nearby events in kilometers.
+     */
+    @DecimalMin(value = "0.1", message = "Радиус должен быть больше 0")
+    @Builder.Default
+    private Double radiusKm = 5.0d;
 }

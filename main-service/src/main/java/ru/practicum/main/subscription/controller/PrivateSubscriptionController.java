@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.practicum.main.event.dto.EventShortDto;
 import ru.practicum.main.subscription.dto.SubscriptionDto;
 import ru.practicum.main.subscription.service.SubscriptionService;
 
@@ -79,5 +80,19 @@ public class PrivateSubscriptionController {
             @RequestParam(defaultValue = "10") @Positive int size) {
         log.info("GET /users/{}/subscriptions/followers - Получение списка подписчиков", userId);
         return subscriptionService.getFollowers(userId, from, size);
+    }
+
+    /**
+     * Returns feed of published events from followed users.
+     */
+    @GetMapping("/events")
+    @ResponseStatus(HttpStatus.OK)
+    public List<EventShortDto> getFollowingEvents(
+            @PathVariable @Positive Long userId,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+            @RequestParam(defaultValue = "10") @Positive int size) {
+        log.info("GET /users/{}/subscriptions/events - Лента событий подписок", userId);
+        return subscriptionService.getFollowingEvents(userId, sort, from, size);
     }
 }

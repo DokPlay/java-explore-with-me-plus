@@ -40,6 +40,11 @@ public class ManagedLocationDto {
     private Double lon;
 
     /**
+     * Default search radius for nearby events in kilometers.
+     */
+    private Double radiusKm;
+
+    /**
      * Active flag.
      */
     private Boolean active;

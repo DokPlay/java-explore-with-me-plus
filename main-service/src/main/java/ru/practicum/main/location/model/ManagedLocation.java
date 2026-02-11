@@ -52,6 +52,13 @@ public class ManagedLocation {
     private Double lon;
 
     /**
+     * Default search radius in kilometers around this location center.
+     */
+    @Column(name = "radius_km", nullable = false)
+    @Builder.Default
+    private Double radiusKm = 5.0d;
+
+    /**
      * Activity flag.
      */
     @Column(nullable = false)

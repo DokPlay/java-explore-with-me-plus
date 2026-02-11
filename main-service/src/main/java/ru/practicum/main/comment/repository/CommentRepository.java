@@ -34,6 +34,11 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     Page<Comment> findAllByEventIdAndStatus(Long eventId, CommentStatus status, Pageable pageable);
 
     /**
+     * Counts user comments for an event excluding the specified status.
+     */
+    long countByAuthorIdAndEventIdAndStatusNot(Long authorId, Long eventId, CommentStatus excludedStatus);
+
+    /**
      * Finds a single event comment by ID and status.
      */
     Optional<Comment> findByIdAndEventIdAndStatus(Long id, Long eventId, CommentStatus status);

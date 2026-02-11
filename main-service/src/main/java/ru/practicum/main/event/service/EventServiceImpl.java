@@ -26,16 +26,21 @@ import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
+import ru.practicum.main.location.model.ManagedLocation;
+import ru.practicum.main.location.repository.ManagedLocationRepository;
 import ru.practicum.main.moderation.dto.EventModerationLogDto;
 import ru.practicum.main.moderation.mapper.EventModerationLogMapper;
 import ru.practicum.main.moderation.model.EventModerationLog;
 import ru.practicum.main.moderation.repository.EventModerationLogRepository;
 import ru.practicum.main.moderation.status.EventModerationAction;
+import ru.practicum.main.rating.repository.EventRatingRepository;
+import ru.practicum.main.rating.status.VoteType;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
 import ru.practicum.main.util.PaginationValidator;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +93,10 @@ public class EventServiceImpl implements EventService {
     private static final int HOURS_BEFORE_EVENT_ADMIN = 1;
 
     private static final String DEFAULT_REJECT_REASON = "Отклонено администратором";
+    private static final String SORT_VIEWS = "VIEWS";
+    private static final String SORT_RATING = "RATING";
+    private static final double KM_PER_LATITUDE_DEGREE = 111.32d;
+    private static final double EARTH_RADIUS_KM = 6371.0088d;
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
@@ -96,6 +105,8 @@ public class EventServiceImpl implements EventService {
     private final StatsClient statsClient;
     private final EventModerationLogRepository eventModerationLogRepository;
     private final EventModerationLogMapper eventModerationLogMapper;
+    private final EventRatingRepository eventRatingRepository;
+    private final ManagedLocationRepository managedLocationRepository;
 
     // Private API — operations for authorized users
 
@@ -318,8 +329,9 @@ public class EventServiceImpl implements EventService {
             throw new ValidationException("Дата начала не может быть после даты окончания");
         }
 
-        boolean sortByViews = "VIEWS".equalsIgnoreCase(sort);
-        Pageable pageable = sortByViews
+        boolean sortByViews = isSortByViews(sort);
+        boolean sortByRating = isSortByRating(sort);
+        Pageable pageable = (sortByViews || sortByRating)
                 ? Pageable.unpaged()
                 : PageRequest.of(from / size, size, Sort.by("eventDate").ascending());
 
@@ -333,15 +345,10 @@ public class EventServiceImpl implements EventService {
         // Fetch view statistics
         enrichEventsWithViews(events);
 
-        // Apply sorting to the result and paginate when sorting by views
-        if (sortByViews) {
-            events = events.stream()
-                    .sorted(Comparator.comparing(Event::getViews).reversed())
-                    .collect(Collectors.toList());
-
-            int startIdx = Math.min(from, events.size());
-            int endIdx = Math.min(startIdx + size, events.size());
-            events = events.subList(startIdx, endIdx);
+        // Apply in-memory sorting/pagination for sorts that depend on external data.
+        if (sortByViews || sortByRating) {
+            events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate));
+            events = applyManualPagination(events, from, size);
         }
 
         return eventMapper.toEventShortDtoList(events);
@@ -369,6 +376,98 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
         enrichEventWithViews(event);
         return eventMapper.toEventFullDto(event);
+    }
+
+    @Override
+    public List<EventShortDto> getPublishedEventsByInitiators(List<Long> initiatorIds,
+                                                              String sort,
+                                                              int from,
+                                                              int size) {
+        PaginationValidator.validatePagination(from, size);
+        if (initiatorIds == null || initiatorIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> uniqueInitiatorIds = initiatorIds.stream()
+                .distinct()
+                .toList();
+        boolean sortByViews = isSortByViews(sort);
+        boolean sortByRating = isSortByRating(sort);
+
+        Pageable pageable = (sortByViews || sortByRating)
+                ? Pageable.unpaged()
+                : PageRequest.of(
+                        from / size,
+                        size,
+                        Sort.by("eventDate").descending().and(Sort.by("id").descending())
+                );
+
+        List<Event> events = eventRepository.findAllByInitiatorIdInAndState(
+                        uniqueInitiatorIds,
+                        EventState.PUBLISHED,
+                        pageable
+                )
+                .getContent();
+        enrichEventsWithViews(events);
+
+        if (sortByViews || sortByRating) {
+            events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate).reversed());
+            events = applyManualPagination(events, from, size);
+        }
+
+        return eventMapper.toEventShortDtoList(events);
+    }
+
+    @Override
+    public List<EventShortDto> searchPublicEventsByLocation(Long locationId,
+                                                            Double radiusKm,
+                                                            String sort,
+                                                            int from,
+                                                            int size,
+                                                            HttpServletRequest request) {
+        PaginationValidator.validatePagination(from, size);
+
+        ManagedLocation location = managedLocationRepository.findByIdAndActiveTrue(locationId)
+                .orElseThrow(() -> new NotFoundException("Активная локация не найдена: id=" + locationId));
+
+        double effectiveRadiusKm = radiusKm != null ? radiusKm : location.getRadiusKm();
+        if (effectiveRadiusKm <= 0) {
+            throw new ValidationException("Радиус поиска должен быть больше 0");
+        }
+
+        double centerLat = location.getLat();
+        double centerLon = location.getLon();
+        double latDelta = effectiveRadiusKm / KM_PER_LATITUDE_DEGREE;
+        double cosLatitude = Math.cos(Math.toRadians(centerLat));
+        double safeCos = Math.max(Math.abs(cosLatitude), 0.01d);
+        double lonDelta = effectiveRadiusKm / (KM_PER_LATITUDE_DEGREE * safeCos);
+
+        List<Event> candidates = eventRepository.findPublishedEventsInBoundingBox(
+                        (float) (centerLat - latDelta),
+                        (float) (centerLat + latDelta),
+                        (float) (centerLon - lonDelta),
+                        (float) (centerLon + lonDelta),
+                        Pageable.unpaged())
+                .getContent();
+
+        List<Event> nearbyEvents = new ArrayList<>(candidates.stream()
+                .filter(event -> event.getLocation() != null
+                        && event.getLocation().getLat() != null
+                        && event.getLocation().getLon() != null
+                        && calculateDistanceKm(
+                        centerLat,
+                        centerLon,
+                        event.getLocation().getLat(),
+                        event.getLocation().getLon()
+                ) <= effectiveRadiusKm)
+                .toList());
+
+        saveHit(request);
+        enrichEventsWithViews(nearbyEvents);
+
+        List<Event> sorted = sortEvents(nearbyEvents, sort, Comparator.comparing(Event::getEventDate));
+        List<Event> paged = applyManualPagination(sorted, from, size);
+        return eventMapper.toEventShortDtoList(paged);
     }
 
     // Private methods — helper operations
@@ -452,6 +551,92 @@ public class EventServiceImpl implements EventService {
 
     private void enrichEventWithViews(Event event) {
         enrichEventsWithViews(List.of(event));
+    }
+
+    private List<Event> sortEvents(List<Event> events, String sort, Comparator<Event> defaultComparator) {
+        if (events.isEmpty()) {
+            return events;
+        }
+
+        if (isSortByViews(sort)) {
+            return events.stream()
+                    .sorted(Comparator.comparing(
+                                    Event::getViews,
+                                    Comparator.nullsLast(Comparator.reverseOrder())
+                            )
+                            .thenComparing(Event::getEventDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .toList();
+        }
+
+        if (isSortByRating(sort)) {
+            Map<Long, Long> scoreMap = getRatingScoresForEvents(events);
+            return events.stream()
+                    .sorted(Comparator
+                            .comparing(
+                                    (Event event) -> scoreMap.getOrDefault(event.getId(), 0L),
+                                    Comparator.reverseOrder()
+                            )
+                            .thenComparing(
+                                    Event::getViews,
+                                    Comparator.nullsLast(Comparator.reverseOrder())
+                            )
+                            .thenComparing(
+                                    Event::getEventDate,
+                                    Comparator.nullsLast(Comparator.naturalOrder())
+                            ))
+                    .toList();
+        }
+
+        return events.stream()
+                .sorted(defaultComparator)
+                .toList();
+    }
+
+    private Map<Long, Long> getRatingScoresForEvents(List<Event> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> eventIds = events.stream()
+                .map(Event::getId)
+                .toList();
+
+        return eventRatingRepository.findScoresByEventIds(eventIds, VoteType.LIKE, VoteType.DISLIKE)
+                .stream()
+                .collect(Collectors.toMap(
+                        EventRatingRepository.EventScoreProjection::getEventId,
+                        score -> score.getScore() == null ? 0L : score.getScore().longValue()
+                ));
+    }
+
+    private boolean isSortByViews(String sort) {
+        return SORT_VIEWS.equalsIgnoreCase(sort);
+    }
+
+    private boolean isSortByRating(String sort) {
+        return SORT_RATING.equalsIgnoreCase(sort);
+    }
+
+    private List<Event> applyManualPagination(List<Event> events, int from, int size) {
+        int startIdx = Math.min(from, events.size());
+        int endIdx = Math.min(startIdx + size, events.size());
+        return events.subList(startIdx, endIdx);
+    }
+
+    private double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+        double lat1Rad = Math.toRadians(lat1);
+        double lon1Rad = Math.toRadians(lon1);
+        double lat2Rad = Math.toRadians(lat2);
+        double lon2Rad = Math.toRadians(lon2);
+
+        double dLat = lat2Rad - lat1Rad;
+        double dLon = lon2Rad - lon1Rad;
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(lat1Rad) * Math.cos(lat2Rad)
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return EARTH_RADIUS_KM * c;
     }
 
     private void saveModerationLog(Event event, EventModerationAction action, String note) {

@@ -2,6 +2,7 @@ package ru.practicum.main.comment.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +47,12 @@ public class CommentServiceImpl implements CommentService {
 
     private static final String DEFAULT_REJECTION_NOTE = "Отклонено администратором";
 
+    /**
+     * Production safeguard from user spam in a single event thread.
+     */
+    @Value("${comments.max-per-user-per-event:5}")
+    private int maxCommentsPerUserPerEvent = 5;
+
     private final CommentRepository commentRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
@@ -66,6 +73,7 @@ public class CommentServiceImpl implements CommentService {
         if (event.getInitiator().getId().equals(userId)) {
             throw new ConflictException("Инициатор события не может комментировать своё событие");
         }
+        validateUserCommentLimit(userId, eventId);
 
         Comment comment = Comment.builder()
                 .text(dto.getText().trim())
@@ -85,10 +93,7 @@ public class CommentServiceImpl implements CommentService {
         log.info("Обновление комментария автором: userId={}, commentId={}", userId, commentId);
         Comment comment = getCommentOrThrow(commentId);
         validateCommentOwner(comment, userId);
-
-        if (comment.getStatus() == CommentStatus.DELETED) {
-            throw new ConflictException("Удалённый комментарий нельзя редактировать");
-        }
+        validateCommentStateForAuthorUpdate(comment.getStatus());
 
         comment.setText(dto.getText().trim());
         comment.setUpdatedOn(nowTruncatedToMillis());
@@ -247,6 +252,32 @@ public class CommentServiceImpl implements CommentService {
     private void validateCommentOwner(Comment comment, Long userId) {
         if (!comment.getAuthor().getId().equals(userId)) {
             throw new NotFoundException("Комментарий не принадлежит пользователю: userId=" + userId);
+        }
+    }
+
+    private void validateCommentLimit(long currentCount) {
+        if (currentCount >= maxCommentsPerUserPerEvent) {
+            throw new ConflictException(
+                    "Превышен лимит комментариев к событию для пользователя: максимум "
+                            + maxCommentsPerUserPerEvent);
+        }
+    }
+
+    private void validateUserCommentLimit(Long userId, Long eventId) {
+        long existingComments = commentRepository.countByAuthorIdAndEventIdAndStatusNot(
+                userId,
+                eventId,
+                CommentStatus.DELETED
+        );
+        validateCommentLimit(existingComments);
+    }
+
+    private void validateCommentStateForAuthorUpdate(CommentStatus status) {
+        if (status == CommentStatus.DELETED) {
+            throw new ConflictException("Удалённый комментарий нельзя редактировать");
+        }
+        if (status != CommentStatus.PENDING && status != CommentStatus.PUBLISHED && status != CommentStatus.REJECTED) {
+            throw new ConflictException("Комментарий в статусе " + status + " нельзя редактировать");
         }
     }
 

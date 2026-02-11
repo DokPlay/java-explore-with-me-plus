@@ -40,6 +40,12 @@ public class UpdateManagedLocationDto {
     private Double lon;
 
     /**
+     * New default search radius for nearby events in kilometers.
+     */
+    @DecimalMin(value = "0.1", message = "Радиус должен быть больше 0")
+    private Double radiusKm;
+
+    /**
      * Active flag update.
      */
     private Boolean active;
