@@ -524,10 +524,10 @@ class EventServiceImplTest {
         }
 
         @Test
-        @DisplayName("Должен нормализовать moderationNote в null при значении только из пробелов")
-        void updateEventByAdmin_BlankModerationNote_NormalizedToNull() {
+        @DisplayName("Должен нормализовать moderationNote, удалив пробелы по краям")
+        void updateEventByAdmin_ModerationNoteTrimmed_Success() {
             UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
-            updateRequest.setModerationNote("   ");
+            updateRequest.setModerationNote("  approved by admin  ");
 
             when(eventRepository.findById(1L)).thenReturn(Optional.of(testEvent));
             doAnswer(invocation -> {
@@ -538,7 +538,7 @@ class EventServiceImplTest {
             }).when(eventMapper).updateEventFromAdminRequest(any(UpdateEventAdminRequest.class), any(Event.class));
             when(eventRepository.save(any(Event.class))).thenAnswer(inv -> {
                 Event saved = inv.getArgument(0);
-                assertThat(saved.getModerationNote()).isNull();
+                assertThat(saved.getModerationNote()).isEqualTo("approved by admin");
                 return saved;
             });
             when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);

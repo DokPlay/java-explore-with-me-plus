@@ -3,7 +3,9 @@ package ru.practicum.main.exception;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
  *     <li>{@link MissingServletRequestParameterException} — 400</li>
  *     <li>{@link NotFoundException} — 404</li>
  *     <li>{@link ConflictException} — 409</li>
+ *     <li>{@link OptimisticLockingFailureException} — 409</li>
  *     <li>{@link DataIntegrityViolationException} — 409</li>
  *     <li>{@link Exception} — 500</li>
  * </ul>
@@ -172,6 +175,24 @@ public class ErrorHandler {
                 "DATA_INTEGRITY_VIOLATION",
                 "Нарушение целостности данных",
                 rootCauseMessage,
+                HttpStatus.CONFLICT,
+                getExceptionDetails(e)
+        );
+    }
+
+    /**
+     * Handles optimistic locking conflicts during concurrent updates.
+     */
+    @ExceptionHandler({OptimisticLockingFailureException.class, ObjectOptimisticLockingFailureException.class})
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiError handleOptimisticLockingFailureException(RuntimeException e) {
+        String rootCauseMessage = getRootCauseMessage(e);
+        log.warn("OptimisticLockingFailureException: {}", rootCauseMessage, e);
+
+        return buildApiError(
+                "OPTIMISTIC_LOCK_CONFLICT",
+                "Конфликт конкурентного обновления",
+                "Ресурс был изменен параллельно, повторите запрос",
                 HttpStatus.CONFLICT,
                 getExceptionDetails(e)
         );

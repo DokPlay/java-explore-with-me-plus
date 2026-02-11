@@ -50,10 +50,11 @@ public class RequestServiceImpl implements RequestService {
         if (userId <= 0) {
             throw new ValidationException("userId must be greater than 0");
         }
-        validateUserExists(userId);
-
         List<ParticipationRequest> requests = requestRepository
                 .findAllByRequesterId(userId);
+        if (requests.isEmpty()) {
+            validateUserExists(userId);
+        }
 
         return requests.stream()
                 .map(requestMapper::toDto)
