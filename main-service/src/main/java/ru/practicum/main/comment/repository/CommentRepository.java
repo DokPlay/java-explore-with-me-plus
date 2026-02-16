@@ -37,6 +37,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             @Param("userId") Long userId,
             @Param("eventId") Long eventId,
             Pageable pageable);
+
     /**
      * Finds event comments by status.
      */
@@ -55,7 +56,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     /**
      * Searches comments for admin with optional filters.
      */
-    @Query( """
+    @Query("""
             SELECT c FROM Comment c\s
             WHERE (:users IS NULL OR c.author.id IN :users)\s
             AND (:events IS NULL OR c.event.id IN :events)\s
