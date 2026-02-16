@@ -770,9 +770,13 @@ class EventServiceImplTest {
                     .build();
 
             testEvent.setState(EventState.PUBLISHED);
+
+            // ИСПРАВЛЕНИЕ: создаем Page с данными, а не null
+            Page<Event> eventPage = new PageImpl<>(List.of(testEvent)); // Вот это важно!
+
             when(managedLocationRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(location));
-            when(eventRepository.findPublishedEventsInBoundingBox(anyFloat(), anyFloat(), anyFloat(), anyFloat(), any(Pageable.class)))
-                    .thenReturn(new PageImpl<>(List.of(testEvent)));
+            when(eventRepository.findPublishedEventsWithPagination(any(Pageable.class)))
+                    .thenReturn(eventPage); // Вместо null возвращаем страницу с данными
             when(eventMapper.toEventShortDtoList(any())).thenReturn(List.of(testEventShortDto));
 
             List<EventShortDto> result = eventService.searchPublicEventsByLocation(
