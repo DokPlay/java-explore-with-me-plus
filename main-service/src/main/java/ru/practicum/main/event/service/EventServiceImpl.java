@@ -40,7 +40,6 @@ import ru.practicum.main.user.repository.UserRepository;
 import ru.practicum.main.util.PaginationValidator;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;

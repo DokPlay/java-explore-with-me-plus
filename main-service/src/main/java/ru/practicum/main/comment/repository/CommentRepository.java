@@ -29,10 +29,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     Page<Comment> findAllByAuthorIdAndEventId(Long authorId, Long eventId, Pageable pageable);
 
     @Query("""
-    SELECT c FROM Comment c 
-    WHERE c.author.id = :userId 
+    SELECT c FROM Comment c\s
+    WHERE c.author.id = :userId\s
     AND (:eventId IS NULL OR c.event.id = :eventId)
-    """)
+   \s""")
     Page<Comment> findAllByAuthorIdAndOptionalEventId(
             @Param("userId") Long userId,
             @Param("eventId") Long eventId,
@@ -55,10 +55,12 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     /**
      * Searches comments for admin with optional filters.
      */
-    @Query("SELECT c FROM Comment c " +
-            "WHERE (:users IS NULL OR c.author.id IN :users) " +
-            "AND (:events IS NULL OR c.event.id IN :events) " +
-            "AND (:statuses IS NULL OR c.status IN :statuses)")
+    @Query( """
+            SELECT c FROM Comment c\s
+            WHERE (:users IS NULL OR c.author.id IN :users)\s
+            AND (:events IS NULL OR c.event.id IN :events)\s
+            AND (:statuses IS NULL OR c.status IN :statuses)
+           \s""")
     Page<Comment> searchForAdmin(
             @Param("users") List<Long> users,
             @Param("events") List<Long> events,

@@ -72,14 +72,13 @@ public interface EventRepository extends JpaRepository<Event, Long> {
      * @return page of events matching the filters
      */
     @Query("""
-            
-                    SELECT e FROM Event e 
-            WHERE (:users IS NULL OR e.initiator.id IN :users) 
-            AND (:states IS NULL OR e.state IN :states) 
-            AND (:categories IS NULL OR e.category.id IN :categories) 
-            AND (CAST(:rangeStart AS timestamp) IS NULL OR e.eventDate >= :rangeStart) 
+            SELECT e FROM Event e\s
+            WHERE (:users IS NULL OR e.initiator.id IN :users)\s
+            AND (:states IS NULL OR e.state IN :states)\s
+            AND (:categories IS NULL OR e.category.id IN :categories)\s
+            AND (CAST(:rangeStart AS timestamp) IS NULL OR e.eventDate >= :rangeStart)\s
             AND (CAST(:rangeEnd AS timestamp) IS NULL OR e.eventDate <= :rangeEnd)
-            """)
+           \s""")
     Page<Event> findEventsForAdmin(
             @Param("users") List<Long> users,
             @Param("states") List<EventState> states,
@@ -101,17 +100,17 @@ public interface EventRepository extends JpaRepository<Event, Long> {
      * @return page of published events
      */
     @Query("""
-            SELECT e FROM Event e 
-            WHERE e.state = 'PUBLISHED' 
-            AND (CAST(:text AS string) IS NULL OR LOWER(e.annotation) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%')) 
-            OR LOWER(e.description) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%'))) 
-            AND (:categories IS NULL OR e.category.id IN :categories) 
-            AND (:paid IS NULL OR e.paid = :paid) 
-            AND (CAST(:rangeStart AS timestamp) IS NULL OR e.eventDate >= :rangeStart) 
-            AND (CAST(:rangeEnd AS timestamp) IS NULL OR e.eventDate <= :rangeEnd) 
-            AND (:onlyAvailable = false OR e.participantLimit = 0 
+            SELECT e FROM Event e\s
+            WHERE e.state = 'PUBLISHED'\s
+            AND (CAST(:text AS string) IS NULL OR LOWER(e.annotation) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%'))\s
+            OR LOWER(e.description) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%')))\s
+            AND (:categories IS NULL OR e.category.id IN :categories)\s
+            AND (:paid IS NULL OR e.paid = :paid)\s
+            AND (CAST(:rangeStart AS timestamp) IS NULL OR e.eventDate >= :rangeStart)\s
+            AND (CAST(:rangeEnd AS timestamp) IS NULL OR e.eventDate <= :rangeEnd)\s
+            AND (:onlyAvailable = false OR e.participantLimit = 0\s
             OR e.confirmedRequests < e.participantLimit)
-            """)
+           \s""")
     Page<Event> findPublicEvents(
             @Param("text") String text,
             @Param("categories") List<Long> categories,
@@ -125,11 +124,11 @@ public interface EventRepository extends JpaRepository<Event, Long> {
      * Returns published events located inside a coordinates bounding box.
      */
     @Query("""
-            SELECT e FROM Event e 
-            WHERE e.state = 'PUBLISHED' 
-            AND e.location.lat BETWEEN :minLat AND :maxLat 
+            SELECT e FROM Event e\s
+            WHERE e.state = 'PUBLISHED'\s
+            AND e.location.lat BETWEEN :minLat AND :maxLat\s
             AND e.location.lon BETWEEN :minLon AND :maxLon
-            """)
+           \s""")
     Page<Event> findPublishedEventsInBoundingBox(
             @Param("minLat") Float minLat,
             @Param("maxLat") Float maxLat,
@@ -150,9 +149,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
      * Finds all published events with pagination.
      */
     @Query("""
-            SELECT e FROM Event e 
+            SELECT e FROM Event e\s
             WHERE e.state = 'PUBLISHED'
-            """)
+           \s""")
     Page<Event> findPublishedEventsWithPagination(Pageable pageable);
 
 }

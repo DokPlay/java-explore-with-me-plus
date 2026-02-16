@@ -130,7 +130,7 @@ public class CommentServiceImpl implements CommentService {
         validateUserExists(userId);
 
 
-        Pageable pageable =createDefaultPageable(from, size);
+        Pageable pageable = createDefaultPageable(from, size);
         Page<Comment> commentsPage = commentRepository
                 .findAllByAuthorIdAndOptionalEventId(userId, eventId, pageable);
 
@@ -143,7 +143,7 @@ public class CommentServiceImpl implements CommentService {
         PaginationValidator.validatePagination(from, size);
         validateEventPublished(eventId);
 
-        Pageable pageable =createDefaultPageable(from, size);
+        Pageable pageable = createDefaultPageable(from, size);
         List<Comment> comments = commentRepository
                 .findAllByEventIdAndStatus(eventId, CommentStatus.PUBLISHED, pageable)
                 .getContent();
@@ -170,7 +170,7 @@ public class CommentServiceImpl implements CommentService {
                 users, events, statuses);
         PaginationValidator.validatePagination(from, size);
 
-        Pageable pageable =createDefaultPageable(from, size);
+        Pageable pageable = createDefaultPageable(from, size);
 
         List<Comment> comments = commentRepository.searchForAdmin(
                         normalizeFilter(users),
