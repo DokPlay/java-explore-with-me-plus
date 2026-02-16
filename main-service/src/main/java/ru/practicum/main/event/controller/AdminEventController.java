@@ -75,7 +75,7 @@ public class AdminEventController {
     @GetMapping("/{eventId}/moderation-history")
     @ResponseStatus(HttpStatus.OK)
     public List<EventModerationLogDto> getModerationHistory(
-            @PathVariable Long eventId,
+            @PathVariable @Positive Long eventId,
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
             @RequestParam(defaultValue = "10") @Positive int size) {
         log.info("GET /admin/events/{}/moderation-history - История модерации", eventId);

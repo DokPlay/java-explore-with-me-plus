@@ -28,6 +28,15 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      */
     Page<Comment> findAllByAuthorIdAndEventId(Long authorId, Long eventId, Pageable pageable);
 
+    @Query("""
+    SELECT c FROM Comment c 
+    WHERE c.author.id = :userId 
+    AND (:eventId IS NULL OR c.event.id = :eventId)
+    """)
+    Page<Comment> findAllByAuthorIdAndOptionalEventId(
+            @Param("userId") Long userId,
+            @Param("eventId") Long eventId,
+            Pageable pageable);
     /**
      * Finds event comments by status.
      */

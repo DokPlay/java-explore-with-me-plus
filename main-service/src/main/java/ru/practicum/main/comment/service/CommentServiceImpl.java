@@ -41,7 +41,7 @@ public class CommentServiceImpl implements CommentService {
 
     /**
      * Placeholder content for soft-deleted comments.
-     * TODO: Move this value to a localization resource bundle.
+     * TODO: Переместить это значение в пакет ресурсов локализации.
      */
     private static final String SOFT_DELETED_TEXT = "[удалено автором]";
 
@@ -100,7 +100,7 @@ public class CommentServiceImpl implements CommentService {
         comment.setStatus(CommentStatus.PENDING);
         comment.setModerationNote(null);
 
-        // TODO: Send async notification to moderators after user edit.
+        // TODO: Отправлять асинхронные уведомления модераторам после редактирования пользователем.
         Comment updatedComment = commentRepository.save(comment);
         return commentMapper.toDto(updatedComment);
     }
@@ -129,15 +129,10 @@ public class CommentServiceImpl implements CommentService {
         PaginationValidator.validatePagination(from, size);
         validateUserExists(userId);
 
-        Pageable pageable = PageRequest.of(
-                from / size,
-                size,
-                Sort.by("createdOn").descending().and(Sort.by("id").descending())
-        );
 
-        Page<Comment> commentsPage = eventId == null
-                ? commentRepository.findAllByAuthorId(userId, pageable)
-                : commentRepository.findAllByAuthorIdAndEventId(userId, eventId, pageable);
+        Pageable pageable =createDefaultPageable(from, size);
+        Page<Comment> commentsPage = commentRepository
+                .findAllByAuthorIdAndOptionalEventId(userId, eventId, pageable);
 
         return commentMapper.toDtoList(commentsPage.getContent());
     }
@@ -148,11 +143,7 @@ public class CommentServiceImpl implements CommentService {
         PaginationValidator.validatePagination(from, size);
         validateEventPublished(eventId);
 
-        Pageable pageable = PageRequest.of(
-                from / size,
-                size,
-                Sort.by("createdOn").descending().and(Sort.by("id").descending())
-        );
+        Pageable pageable =createDefaultPageable(from, size);
         List<Comment> comments = commentRepository
                 .findAllByEventIdAndStatus(eventId, CommentStatus.PUBLISHED, pageable)
                 .getContent();
@@ -179,11 +170,7 @@ public class CommentServiceImpl implements CommentService {
                 users, events, statuses);
         PaginationValidator.validatePagination(from, size);
 
-        Pageable pageable = PageRequest.of(
-                from / size,
-                size,
-                Sort.by("createdOn").descending().and(Sort.by("id").descending())
-        );
+        Pageable pageable =createDefaultPageable(from, size);
 
         List<Comment> comments = commentRepository.searchForAdmin(
                         normalizeFilter(users),
@@ -206,7 +193,7 @@ public class CommentServiceImpl implements CommentService {
 
         switch (request.getAction()) {
             case PUBLISH -> {
-                // TODO: Add anti-spam/profanity checks before publishing to public feed.
+                // TODO: Добавить проверку на спам/нецензурную лексику перед публикацией в общедоступной ленте.
                 comment.setStatus(CommentStatus.PUBLISHED);
                 comment.setModerationNote(null);
             }
@@ -295,5 +282,14 @@ public class CommentServiceImpl implements CommentService {
     private LocalDateTime nowTruncatedToMillis() {
         return LocalDateTime.now()
                 .truncatedTo(ChronoUnit.MILLIS);
+    }
+
+    private Pageable createDefaultPageable(int from, int size) {
+        return PageRequest.of(
+                from / size,
+                size,
+                Sort.by("createdOn").descending()
+                        .and(Sort.by("id").descending())
+        );
     }
 }

@@ -32,7 +32,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(onlyExplicitlyIncluded = true)
+
+@ToString
 public class Subscription {
 
     /**

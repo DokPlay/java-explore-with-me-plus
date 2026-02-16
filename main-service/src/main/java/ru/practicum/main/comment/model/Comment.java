@@ -36,59 +36,41 @@ import java.time.LocalDateTime;
 @ToString(onlyExplicitlyIncluded = true)
 public class Comment {
 
-    /**
-     * Unique comment identifier.
-     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @ToString.Include
     private Long id;
 
-    /**
-     * Raw comment text.
-     */
+
     @Column(nullable = false, length = 2000)
     private String text;
 
-    /**
-     * Event to which the comment belongs.
-     */
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    /**
-     * Author of the comment.
-     */
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    /**
-     * Creation timestamp.
-     */
+
     @Column(name = "created_on", nullable = false)
     @ToString.Include
     private LocalDateTime createdOn;
 
-    /**
-     * Last update timestamp.
-     */
+
     @Column(name = "updated_on")
     private LocalDateTime updatedOn;
 
-    /**
-     * Current moderation status.
-     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     @ToString.Include
     private CommentStatus status = CommentStatus.PENDING;
 
-    /**
-     * Optional moderation note from administrator.
-     */
+
     @Column(name = "moderation_note", length = 1000)
     private String moderationNote;
 }

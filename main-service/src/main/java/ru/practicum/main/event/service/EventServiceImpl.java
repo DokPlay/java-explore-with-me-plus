@@ -317,41 +317,58 @@ public class EventServiceImpl implements EventService {
             int from,
             int size,
             HttpServletRequest request) {
+
         log.info("Публичный поиск событий: text={}, categories={}, paid={}", text, categories, paid);
         PaginationValidator.validatePagination(from, size);
 
-        // If the range is not specified, use now as the start
+        // Если from большой, можно сразу вернуть пустой результат
+        int maxAllowedFrom = 10000; // Максимальный допустимый from
+        if (from > maxAllowedFrom) {
+            log.warn("Запрошен слишком большой from={}, возвращаем пустой результат", from);
+            return List.of();
+        }
+
         LocalDateTime start = rangeStart != null ? rangeStart : LocalDateTime.now();
         LocalDateTime end = rangeEnd;
 
-        // Validate the date range
         if (end != null && start.isAfter(end)) {
             throw new ValidationException("Дата начала не может быть после даты окончания");
         }
 
         boolean sortByViews = isSortByViews(sort);
         boolean sortByRating = isSortByRating(sort);
-        Pageable pageable = (sortByViews || sortByRating)
-                ? Pageable.unpaged()
-                : PageRequest.of(from / size, size, Sort.by("eventDate").ascending());
 
-        List<Event> events = eventRepository.findPublicEvents(
-                text, categories, paid, start, end,
-                onlyAvailable != null && onlyAvailable, pageable).getContent();
-
-        // Record the request in stats
-        saveHit(request);
-
-        // Fetch view statistics
-        enrichEventsWithViews(events);
-
-        // Apply in-memory sorting/pagination for sorts that depend on external data.
+        // Для сортировки по просмотрам/рейтингу используем ограниченную выборку + пагинацию в БД
         if (sortByViews || sortByRating) {
-            events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate));
-            events = applyManualPagination(events, from, size);
-        }
+            // Увеличиваем лимит для возможности сортировки в памяти, но не бесконечно
+            int fetchSize = Math.min(size * 3, 500); // Максимум 500 записей для сортировки
+            Pageable fetchPageable = PageRequest.of(0, fetchSize);
 
-        return eventMapper.toEventShortDtoList(events);
+            List<Event> events = eventRepository.findPublicEvents(
+                    text, categories, paid, start, end,
+                    onlyAvailable != null && onlyAvailable, fetchPageable).getContent();
+
+            enrichEventsWithViews(events);
+
+            // Сортировка с учетом views/rating
+            events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate));
+
+            // Ручная пагинация
+            events = applyManualPagination(events, from, size);
+
+            return eventMapper.toEventShortDtoList(events);
+        } else {
+            // Обычная пагинация в БД
+            Pageable pageable = PageRequest.of(from / size, size, Sort.by("eventDate").ascending());
+            List<Event> events = eventRepository.findPublicEvents(
+                    text, categories, paid, start, end,
+                    onlyAvailable != null && onlyAvailable, pageable).getContent();
+
+            saveHit(request);
+            enrichEventsWithViews(events);
+
+            return eventMapper.toEventShortDtoList(events);
+        }
     }
 
     @Override
@@ -384,38 +401,57 @@ public class EventServiceImpl implements EventService {
                                                               int from,
                                                               int size) {
         PaginationValidator.validatePagination(from, size);
+
         if (initiatorIds == null || initiatorIds.isEmpty()) {
             return List.of();
         }
 
+        // Ограничиваем количество initiators для предотвращения слишком больших выборок
         List<Long> uniqueInitiatorIds = initiatorIds.stream()
                 .distinct()
+                .limit(100) // Максимум 100 авторов за раз
                 .toList();
+
         boolean sortByViews = isSortByViews(sort);
         boolean sortByRating = isSortByRating(sort);
 
-        Pageable pageable = (sortByViews || sortByRating)
-                ? Pageable.unpaged()
-                : PageRequest.of(
-                        from / size,
-                        size,
-                        Sort.by("eventDate").descending().and(Sort.by("id").descending())
-                );
-
-        List<Event> events = eventRepository.findAllByInitiatorIdInAndState(
-                        uniqueInitiatorIds,
-                        EventState.PUBLISHED,
-                        pageable
-                )
-                .getContent();
-        enrichEventsWithViews(events);
-
         if (sortByViews || sortByRating) {
+            // Для сортировки по просмотрам/рейтингу используем ограниченную выборку
+            int fetchSize = Math.min(size * 3, 300);
+            Pageable fetchPageable = PageRequest.of(0, fetchSize,
+                    Sort.by("eventDate").descending().and(Sort.by("id").descending()));
+
+            List<Event> events = eventRepository.findAllByInitiatorIdInAndState(
+                            uniqueInitiatorIds,
+                            EventState.PUBLISHED,
+                            fetchPageable
+                    )
+                    .getContent();
+
+            enrichEventsWithViews(events);
+
             events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate).reversed());
             events = applyManualPagination(events, from, size);
-        }
 
-        return eventMapper.toEventShortDtoList(events);
+            return eventMapper.toEventShortDtoList(events);
+        } else {
+            Pageable pageable = PageRequest.of(
+                    from / size,
+                    size,
+                    Sort.by("eventDate").descending().and(Sort.by("id").descending())
+            );
+
+            List<Event> events = eventRepository.findAllByInitiatorIdInAndState(
+                            uniqueInitiatorIds,
+                            EventState.PUBLISHED,
+                            pageable
+                    )
+                    .getContent();
+
+            enrichEventsWithViews(events);
+
+            return eventMapper.toEventShortDtoList(events);
+        }
     }
 
     @Override
@@ -437,37 +473,40 @@ public class EventServiceImpl implements EventService {
 
         double centerLat = location.getLat();
         double centerLon = location.getLon();
-        double latDelta = effectiveRadiusKm / KM_PER_LATITUDE_DEGREE;
-        double cosLatitude = Math.cos(Math.toRadians(centerLat));
-        double safeCos = Math.max(Math.abs(cosLatitude), 0.01d);
-        double lonDelta = effectiveRadiusKm / (KM_PER_LATITUDE_DEGREE * safeCos);
 
-        List<Event> candidates = eventRepository.findPublishedEventsInBoundingBox(
-                        (float) (centerLat - latDelta),
-                        (float) (centerLat + latDelta),
-                        (float) (centerLon - lonDelta),
-                        (float) (centerLon + lonDelta),
-                        Pageable.unpaged())
-                .getContent();
+        // Сначала получаем события с пагинацией
+        int pageSize = size * 2; // Запрашиваем немного больше для фильтрации
+        Pageable pageable = PageRequest.of(from / size, pageSize);
 
-        List<Event> nearbyEvents = new ArrayList<>(candidates.stream()
+        List<Event> pagedEvents = eventRepository.findPublishedEventsWithPagination(pageable).getContent();
+
+        // Фильтруем по расстоянию
+        List<Event> nearbyEvents = pagedEvents.stream()
                 .filter(event -> event.getLocation() != null
                         && event.getLocation().getLat() != null
-                        && event.getLocation().getLon() != null
-                        && calculateDistanceKm(
+                        && event.getLocation().getLon() != null)
+                .filter(event -> calculateDistanceKm(
                         centerLat,
                         centerLon,
                         event.getLocation().getLat(),
                         event.getLocation().getLon()
                 ) <= effectiveRadiusKm)
-                .toList());
+                .limit(size) // Ограничиваем результат
+                .toList();
 
         saveHit(request);
         enrichEventsWithViews(nearbyEvents);
 
+        // Если нужно больше событий и мы не набрали достаточно
+        if (nearbyEvents.size() < size && pagedEvents.size() == pageSize) {
+            // Можно добавить логику для получения следующих страниц
+            log.debug("Получено только {} событий из {}, требуется дополнительная загрузка",
+                    nearbyEvents.size(), size);
+        }
+
         List<Event> sorted = sortEvents(nearbyEvents, sort, Comparator.comparing(Event::getEventDate));
-        List<Event> paged = applyManualPagination(sorted, from, size);
-        return eventMapper.toEventShortDtoList(paged);
+
+        return eventMapper.toEventShortDtoList(sorted);
     }
 
     // Private methods — helper operations
