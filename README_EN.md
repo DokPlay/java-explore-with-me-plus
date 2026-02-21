@@ -189,9 +189,9 @@ GET /stats?start=2024-01-01 00:00:00&end=2024-12-31 23:59:59&uris=/events/1&uniq
 
 ## 👥 Authors
 
-Yandex Practicum Team
+@DokPlay @Ibragim1111 @VanoStreyPracticum
 
----
+---MIT
 
 ## 📄 License
 
