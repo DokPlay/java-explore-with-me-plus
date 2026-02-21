@@ -21,49 +21,64 @@ import java.util.Optional;
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-        /**
-         * Returns a user's events with pagination.
-         *
-         * @param initiatorId initiator user ID
-         * @param pageable    pagination parameters
-         * @return page of the user's events
-         */
+    /**
+     * Returns a user's events with pagination.
+     *
+     * @param initiatorId initiator user ID
+     * @param pageable    pagination parameters
+     * @return page of the user's events
+     */
     Page<Event> findAllByInitiatorId(Long initiatorId, Pageable pageable);
 
-        /**
-         * Finds an event by ID and initiator.
-         *
-         * @param eventId     event ID
-         * @param initiatorId initiator ID
-         * @return event if found and belongs to the user
-         */
+    /**
+     * Returns published events for a list of initiators.
+     */
+    Page<Event> findAllByInitiatorIdInAndState(List<Long> initiatorIds, EventState state, Pageable pageable);
+
+    /**
+     * Finds an event by ID and initiator.
+     *
+     * @param eventId     event ID
+     * @param initiatorId initiator ID
+     * @return event if found and belongs to the user
+     */
     Optional<Event> findByIdAndInitiatorId(Long eventId, Long initiatorId);
 
-        /**
-         * Checks whether there are events in the specified category.
-         *
-         * @param categoryId category ID
-         * @return true if events exist in the category
-         */
+    /**
+     * Checks whether there are events in the specified category.
+     *
+     * @param categoryId category ID
+     * @return true if events exist in the category
+     */
     boolean existsByCategoryId(Long categoryId);
 
-        /**
-         * Searches events for admins with filters.
-         *
-         * @param users      list of user IDs (NULL = all)
-         * @param states     list of states (NULL = all)
-         * @param categories list of category IDs (NULL = all)
-         * @param rangeStart start of time range (NULL = no limit)
-         * @param rangeEnd   end of time range (NULL = no limit)
-         * @param pageable   pagination parameters
-         * @return page of events matching the filters
-         */
-    @Query("SELECT e FROM Event e " +
-           "WHERE (:users IS NULL OR e.initiator.id IN :users) " +
-           "AND (:states IS NULL OR e.state IN :states) " +
-           "AND (:categories IS NULL OR e.category.id IN :categories) " +
-           "AND (CAST(:rangeStart AS timestamp) IS NULL OR e.eventDate >= :rangeStart) " +
-           "AND (CAST(:rangeEnd AS timestamp) IS NULL OR e.eventDate <= :rangeEnd)")
+    /**
+     * Checks whether user has created at least one event.
+     *
+     * @param initiatorId initiator user ID
+     * @return true if user owns events
+     */
+    boolean existsByInitiatorId(Long initiatorId);
+
+    /**
+     * Searches events for admins with filters.
+     *
+     * @param users      list of user IDs (NULL = all)
+     * @param states     list of states (NULL = all)
+     * @param categories list of category IDs (NULL = all)
+     * @param rangeStart start of time range (NULL = no limit)
+     * @param rangeEnd   end of time range (NULL = no limit)
+     * @param pageable   pagination parameters
+     * @return page of events matching the filters
+     */
+    @Query("""
+            SELECT e FROM Event e\s
+            WHERE (:users IS NULL OR e.initiator.id IN :users)\s
+            AND (:states IS NULL OR e.state IN :states)\s
+            AND (:categories IS NULL OR e.category.id IN :categories)\s
+            AND (CAST(:rangeStart AS timestamp) IS NULL OR e.eventDate >= :rangeStart)\s
+            AND (CAST(:rangeEnd AS timestamp) IS NULL OR e.eventDate <= :rangeEnd)
+           \s""")
     Page<Event> findEventsForAdmin(
             @Param("users") List<Long> users,
             @Param("states") List<EventState> states,
@@ -72,28 +87,30 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("rangeEnd") LocalDateTime rangeEnd,
             Pageable pageable);
 
-        /**
-         * Public search for published events with filters.
-         *
-         * @param text          search text (NULL = no text filter)
-         * @param categories    list of category IDs (NULL = all categories)
-         * @param paid          paid filter (NULL = all)
-         * @param rangeStart    start of time range
-         * @param rangeEnd      end of time range
-         * @param onlyAvailable only events with available spots
-         * @param pageable      pagination parameters
-         * @return page of published events
-         */
-    @Query("SELECT e FROM Event e " +
-           "WHERE e.state = 'PUBLISHED' " +
-           "AND (CAST(:text AS string) IS NULL OR LOWER(e.annotation) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%')) " +
-           "OR LOWER(e.description) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%'))) " +
-           "AND (:categories IS NULL OR e.category.id IN :categories) " +
-           "AND (:paid IS NULL OR e.paid = :paid) " +
-           "AND (CAST(:rangeStart AS timestamp) IS NULL OR e.eventDate >= :rangeStart) " +
-           "AND (CAST(:rangeEnd AS timestamp) IS NULL OR e.eventDate <= :rangeEnd) " +
-           "AND (:onlyAvailable = false OR e.participantLimit = 0 " +
-           "OR e.confirmedRequests < e.participantLimit)")
+    /**
+     * Public search for published events with filters.
+     *
+     * @param text          search text (NULL = no text filter)
+     * @param categories    list of category IDs (NULL = all categories)
+     * @param paid          paid filter (NULL = all)
+     * @param rangeStart    start of time range
+     * @param rangeEnd      end of time range
+     * @param onlyAvailable only events with available spots
+     * @param pageable      pagination parameters
+     * @return page of published events
+     */
+    @Query("""
+            SELECT e FROM Event e\s
+            WHERE e.state = 'PUBLISHED'\s
+            AND (CAST(:text AS string) IS NULL OR LOWER(e.annotation) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%'))\s
+            OR LOWER(e.description) LIKE LOWER(CONCAT('%', CAST(:text AS string), '%')))\s
+            AND (:categories IS NULL OR e.category.id IN :categories)\s
+            AND (:paid IS NULL OR e.paid = :paid)\s
+            AND (CAST(:rangeStart AS timestamp) IS NULL OR e.eventDate >= :rangeStart)\s
+            AND (CAST(:rangeEnd AS timestamp) IS NULL OR e.eventDate <= :rangeEnd)\s
+            AND (:onlyAvailable = false OR e.participantLimit = 0\s
+            OR e.confirmedRequests < e.participantLimit)
+           \s""")
     Page<Event> findPublicEvents(
             @Param("text") String text,
             @Param("categories") List<Long> categories,
@@ -103,13 +120,38 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("onlyAvailable") Boolean onlyAvailable,
             Pageable pageable);
 
-        /**
-         * Finds an event by ID and state.
-         *
-         * @param id    event ID
-         * @param state required event state
-         * @return event if found with the specified state
-         */
+    /**
+     * Returns published events located inside a coordinates bounding box.
+     */
+    @Query("""
+            SELECT e FROM Event e\s
+            WHERE e.state = 'PUBLISHED'\s
+            AND e.location.lat BETWEEN :minLat AND :maxLat\s
+            AND e.location.lon BETWEEN :minLon AND :maxLon
+           \s""")
+    Page<Event> findPublishedEventsInBoundingBox(
+            @Param("minLat") Float minLat,
+            @Param("maxLat") Float maxLat,
+            @Param("minLon") Float minLon,
+            @Param("maxLon") Float maxLon,
+            Pageable pageable);
+
+    /**
+     * Finds an event by ID and state.
+     *
+     * @param id    event ID
+     * @param state required event state
+     * @return event if found with the specified state
+     */
     Optional<Event> findByIdAndState(Long id, EventState state);
+
+    /**
+     * Finds all published events with pagination.
+     */
+    @Query("""
+            SELECT e FROM Event e\s
+            WHERE e.state = 'PUBLISHED'
+           \s""")
+    Page<Event> findPublishedEventsWithPagination(Pageable pageable);
 
 }

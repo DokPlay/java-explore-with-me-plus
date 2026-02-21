@@ -1,6 +1,7 @@
 package ru.practicum.main.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -56,6 +57,7 @@ public class NewEventDto {
      * Venue coordinates.
      */
     @NotNull(message = "Локация обязательна")
+    @Valid
     private LocationDto location;
 
     /**

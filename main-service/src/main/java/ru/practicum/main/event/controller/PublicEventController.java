@@ -34,7 +34,7 @@ public class PublicEventController {
     private final EventService eventService;
 
     /**
-     * Returns published events with filters and sorting.
+     * Returns published events with filters and sorting (EVENT_DATE, VIEWS, RATING).
      */
     @GetMapping
     @ResponseStatus(HttpStatus.OK)

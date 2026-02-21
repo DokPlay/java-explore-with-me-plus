@@ -6,6 +6,7 @@ import ru.practicum.main.event.dto.NewEventDto;
 import ru.practicum.main.event.dto.UpdateEventAdminRequest;
 import ru.practicum.main.event.dto.UpdateEventUserRequest;
 import ru.practicum.main.event.model.EventState;
+import ru.practicum.main.moderation.dto.EventModerationLogDto;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -118,6 +119,16 @@ public interface EventService {
          */
     EventFullDto updateEventByAdmin(Long eventId, UpdateEventAdminRequest updateRequest);
 
+        /**
+         * Returns event moderation history for administrators.
+         *
+         * @param eventId event id
+         * @param from    start index for pagination
+         * @param size    page size
+         * @return list of moderation history entries
+         */
+    List<EventModerationLogDto> getEventModerationHistory(Long eventId, int from, int size);
+
         // Public API — access to published events without authorization
 
         /**
@@ -132,7 +143,7 @@ public interface EventService {
          * @param rangeStart    start of time range (optional)
          * @param rangeEnd      end of time range (optional)
          * @param onlyAvailable only events with available spots
-         * @param sort          sorting: EVENT_DATE or VIEWS
+         * @param sort          sorting: EVENT_DATE, VIEWS or RATING
          * @param from          start index for pagination
          * @param size          number of items per page
          * @param request       HTTP request to obtain client IP
@@ -174,4 +185,34 @@ public interface EventService {
          * @throws ru.practicum.main.exception.NotFoundException if the event is not found
          */
     EventFullDto getEventById(Long eventId);
+
+    /**
+     * Returns published events created by the provided initiators.
+     * Used for subscription feeds.
+     *
+     * @param initiatorIds initiator ids
+     * @param sort         sorting: EVENT_DATE, VIEWS, RATING
+     * @param from         start index for pagination
+     * @param size         number of items per page
+     * @return list of short event DTOs
+     */
+    List<EventShortDto> getPublishedEventsByInitiators(List<Long> initiatorIds, String sort, int from, int size);
+
+    /**
+     * Returns published events near managed location center using radius in kilometers.
+     *
+     * @param locationId managed location id
+     * @param radiusKm   search radius in km (null = managed location default radius)
+     * @param sort       sorting: EVENT_DATE, VIEWS, RATING
+     * @param from       start index for pagination
+     * @param size       number of items per page
+     * @param request    HTTP request for stats hit collection
+     * @return list of nearby published events
+     */
+    List<EventShortDto> searchPublicEventsByLocation(Long locationId,
+                                                      Double radiusKm,
+                                                      String sort,
+                                                      int from,
+                                                      int size,
+                                                      HttpServletRequest request);
 }

@@ -1,6 +1,5 @@
 package ru.practicum.client;
 
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -14,7 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import ru.practicum.dto.DateTimeFormatConstants;
 import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.StatsRequestDto;
-import ru.practicum.dto.StatsResponseDto;
+import ru.practicum.dto.ViewStatsDto;
 
 import java.net.URI;
 import java.time.format.DateTimeFormatter;
@@ -54,7 +53,6 @@ public class StatsClient {
          *
          * @param endpointHitDto view data (app, uri, ip, timestamp)
          */
-    @SuppressWarnings("unchecked")
     public void hit(EndpointHitDto endpointHitDto) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -76,8 +74,7 @@ public class StatsClient {
          * @param requestDto period parameters, URIs, and uniqueness flag
          * @return list of aggregated statistics
          */
-    @SuppressWarnings("unchecked")
-    public List<StatsResponseDto> getStats(@Valid StatsRequestDto requestDto) {
+    public List<ViewStatsDto> getStats(StatsRequestDto requestDto) {
         String start = requestDto.getStart().format(DATE_TIME_FORMATTER);
         String end = requestDto.getEnd().format(DATE_TIME_FORMATTER);
         Boolean unique = requestDto.getUnique() != null ? requestDto.getUnique() : false;
@@ -96,11 +93,11 @@ public class StatsClient {
 
         URI uri = builder.encode().build().toUri();
 
-        ResponseEntity<List<StatsResponseDto>> response = restTemplate.exchange(
+        ResponseEntity<List<ViewStatsDto>> response = restTemplate.exchange(
                 uri,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<List<StatsResponseDto>>() {});
+                new ParameterizedTypeReference<List<ViewStatsDto>>() {});
 
         return response.getBody();
     }

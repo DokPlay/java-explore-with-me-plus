@@ -11,6 +11,7 @@ import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
 import ru.practicum.main.request.dto.EventRequestStatusUpdateRequest;
+import ru.practicum.main.request.dto.ParticipationRequestDto;
 import ru.practicum.main.request.mapper.RequestMapper;
 import ru.practicum.main.request.model.ParticipationRequest;
 import ru.practicum.main.request.repository.RequestRepository;
@@ -22,9 +23,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RequestService Validation Tests")
@@ -44,6 +49,44 @@ class RequestServiceImplTest {
 
     @InjectMocks
     private RequestServiceImpl requestService;
+
+    @Test
+    @DisplayName("Должен вернуть заявки без дополнительной проверки пользователя, если заявки найдены")
+    void getUserRequests_WithExistingRequests_DoesNotCheckUserExistence() {
+        ParticipationRequest request = new ParticipationRequest();
+        request.setId(1L);
+
+        when(requestRepository.findAllByRequesterId(1L)).thenReturn(List.of(request));
+        when(requestMapper.toDto(request)).thenReturn(ParticipationRequestDto.builder().id(1L).build());
+
+        List<ParticipationRequestDto> result = requestService.getUserRequests(1L);
+
+        assertThat(result).hasSize(1);
+        verify(userRepository, never()).existsById(anyLong());
+    }
+
+    @Test
+    @DisplayName("Должен выбросить NotFoundException если заявок нет и пользователь не найден")
+    void getUserRequests_NoRequestsAndUserNotFound_ThrowsNotFound() {
+        when(requestRepository.findAllByRequesterId(1L)).thenReturn(List.of());
+        when(userRepository.existsById(1L)).thenReturn(false);
+
+        assertThatThrownBy(() -> requestService.getUserRequests(1L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Пользователь не найден");
+    }
+
+    @Test
+    @DisplayName("Должен вернуть пустой список если заявок нет, но пользователь существует")
+    void getUserRequests_NoRequestsAndUserExists_ReturnsEmptyList() {
+        when(requestRepository.findAllByRequesterId(1L)).thenReturn(List.of());
+        when(userRepository.existsById(1L)).thenReturn(true);
+
+        List<ParticipationRequestDto> result = requestService.getUserRequests(1L);
+
+        assertThat(result).isEmpty();
+        verify(userRepository).existsById(1L);
+    }
 
     @Test
     @DisplayName("Должен выбросить ValidationException при null requestIds")

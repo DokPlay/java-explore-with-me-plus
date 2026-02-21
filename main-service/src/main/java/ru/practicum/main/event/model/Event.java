@@ -12,11 +12,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.Version;
+import lombok.*;
 import ru.practicum.main.category.model.Category;
 import ru.practicum.main.user.model.User;
 
@@ -138,4 +135,17 @@ public class Event {
      */
     @Builder.Default
     private Long views = 0L;
+
+    /**
+     * Optimistic-lock field to protect concurrent updates.
+     */
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    /**
+     * Optional moderation note from administrator.
+     */
+    @Column(name = "moderation_note", length = 1000)
+    private String moderationNote;
 }

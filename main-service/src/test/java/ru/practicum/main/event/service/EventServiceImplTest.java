@@ -25,6 +25,14 @@ import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
+import ru.practicum.main.location.model.ManagedLocation;
+import ru.practicum.main.location.repository.ManagedLocationRepository;
+import ru.practicum.main.moderation.dto.EventModerationLogDto;
+import ru.practicum.main.moderation.mapper.EventModerationLogMapper;
+import ru.practicum.main.moderation.model.EventModerationLog;
+import ru.practicum.main.moderation.repository.EventModerationLogRepository;
+import ru.practicum.main.moderation.status.EventModerationAction;
+import ru.practicum.main.rating.repository.EventRatingRepository;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
 
@@ -59,6 +67,18 @@ class EventServiceImplTest {
 
     @Mock
     private StatsClient statsClient;
+
+    @Mock
+    private EventModerationLogRepository eventModerationLogRepository;
+
+    @Mock
+    private EventModerationLogMapper eventModerationLogMapper;
+
+    @Mock
+    private EventRatingRepository eventRatingRepository;
+
+    @Mock
+    private ManagedLocationRepository managedLocationRepository;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -501,6 +521,75 @@ class EventServiceImplTest {
             assertThat(result).isNotNull();
             verify(eventRepository).save(any(Event.class));
         }
+
+        @Test
+        @DisplayName("Должен нормализовать moderationNote, удалив пробелы по краям")
+        void updateEventByAdmin_ModerationNoteTrimmed_Success() {
+            UpdateEventAdminRequest updateRequest = new UpdateEventAdminRequest();
+            updateRequest.setModerationNote("  approved by admin  ");
+
+            when(eventRepository.findById(1L)).thenReturn(Optional.of(testEvent));
+            doAnswer(invocation -> {
+                UpdateEventAdminRequest dto = invocation.getArgument(0);
+                Event event = invocation.getArgument(1);
+                event.setModerationNote(dto.getModerationNote());
+                return null;
+            }).when(eventMapper).updateEventFromAdminRequest(any(UpdateEventAdminRequest.class), any(Event.class));
+            when(eventRepository.save(any(Event.class))).thenAnswer(inv -> {
+                Event saved = inv.getArgument(0);
+                assertThat(saved.getModerationNote()).isEqualTo("approved by admin");
+                return saved;
+            });
+            when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
+
+            EventFullDto result = eventService.updateEventByAdmin(1L, updateRequest);
+
+            assertThat(result).isNotNull();
+            verify(eventRepository).save(any(Event.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("Admin API: getEventModerationHistory")
+    class GetEventModerationHistoryTests {
+
+        @Test
+        @DisplayName("Должен вернуть историю модерации события")
+        void getEventModerationHistory_success() {
+            EventModerationLog logEntry = EventModerationLog.builder()
+                    .id(1L)
+                    .event(testEvent)
+                    .action(EventModerationAction.PUBLISH)
+                    .note("Approved")
+                    .actedOn(LocalDateTime.now())
+                    .build();
+            EventModerationLogDto dto = EventModerationLogDto.builder()
+                    .id(1L)
+                    .eventId(1L)
+                    .action(EventModerationAction.PUBLISH)
+                    .note("Approved")
+                    .build();
+
+            when(eventRepository.existsById(1L)).thenReturn(true);
+            when(eventModerationLogRepository.findAllByEventId(anyLong(), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(logEntry)));
+            when(eventModerationLogMapper.toDtoList(any())).thenReturn(List.of(dto));
+
+            List<EventModerationLogDto> result = eventService.getEventModerationHistory(1L, 0, 10);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getAction()).isEqualTo(EventModerationAction.PUBLISH);
+        }
+
+        @Test
+        @DisplayName("Должен выбросить NotFoundException если событие не найдено")
+        void getEventModerationHistory_eventNotFound_throwsNotFound() {
+            when(eventRepository.existsById(1L)).thenReturn(false);
+
+            assertThatThrownBy(() -> eventService.getEventModerationHistory(1L, 0, 10))
+                    .isInstanceOf(NotFoundException.class)
+                    .hasMessageContaining("Событие не найдено");
+        }
     }
 
     // Public API tests
@@ -635,6 +724,71 @@ class EventServiceImplTest {
                     mock(jakarta.servlet.http.HttpServletRequest.class)))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("from must be");
+        }
+    }
+
+    @Nested
+    @DisplayName("Additional Stage 3 methods")
+    class AdditionalMethodsTests {
+
+        @Test
+        @DisplayName("Должен вернуть пустой список для ленты подписок без initiatorIds")
+        void getPublishedEventsByInitiators_emptyInput_returnsEmpty() {
+            List<EventShortDto> result = eventService.getPublishedEventsByInitiators(List.of(), "RATING", 0, 10);
+
+            assertThat(result).isEmpty();
+            verify(eventRepository, never()).findAllByInitiatorIdInAndState(any(), any(), any(Pageable.class));
+        }
+
+        @Test
+        @DisplayName("Должен выбросить NotFoundException при поиске событий по неактивной локации")
+        void searchPublicEventsByLocation_locationNotFound_throwsNotFound() {
+            when(managedLocationRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> eventService.searchPublicEventsByLocation(
+                    1L,
+                    5.0,
+                    "EVENT_DATE",
+                    0,
+                    10,
+                    mock(jakarta.servlet.http.HttpServletRequest.class)))
+                    .isInstanceOf(NotFoundException.class)
+                    .hasMessageContaining("Активная локация не найдена");
+        }
+
+        @Test
+        @DisplayName("Должен вернуть события в радиусе managed location")
+        void searchPublicEventsByLocation_success() {
+            ManagedLocation location = ManagedLocation.builder()
+                    .id(1L)
+                    .name("Center")
+                    .lat(55.75)
+                    .lon(37.62)
+                    .radiusKm(5.0)
+                    .active(true)
+                    .build();
+
+            testEvent.setState(EventState.PUBLISHED);
+
+            // ИСПРАВЛЕНИЕ: создаем Page с данными, а не null
+            Page<Event> eventPage = new PageImpl<>(List.of(testEvent)); // Вот это важно!
+
+            when(managedLocationRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(location));
+            when(eventRepository.findPublishedEventsWithPagination(any(Pageable.class)))
+                    .thenReturn(eventPage); // Вместо null возвращаем страницу с данными
+            when(eventMapper.toEventShortDtoList(any())).thenReturn(List.of(testEventShortDto));
+
+            List<EventShortDto> result = eventService.searchPublicEventsByLocation(
+                    1L,
+                    null,
+                    "EVENT_DATE",
+                    0,
+                    10,
+                    mock(jakarta.servlet.http.HttpServletRequest.class)
+            );
+
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst().getId()).isEqualTo(1L);
         }
     }
 }

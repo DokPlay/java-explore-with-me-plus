@@ -4,7 +4,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.category.dto.CategoryDto;
 import ru.practicum.main.category.service.CategoryService;
@@ -18,11 +17,12 @@ public class AdminCategoryController {
     private final CategoryService service;
 
     @PostMapping
-    public ResponseEntity<CategoryDto> create(@Valid @RequestBody CategoryDto dto) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public CategoryDto create(@Valid @RequestBody CategoryDto dto) {
         log.info("Admin: Запрос на создание новой категории с именем: {}", dto.getName());
         CategoryDto created = service.create(dto);
         log.info("Admin: Категория успешно создана с id: {}", created.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return created;
     }
 
     @PatchMapping("/{catId}")

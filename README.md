@@ -71,7 +71,7 @@ HTTP-клиент для взаимодействия с сервисом ста
 - PostgreSQL 16
 - MapStruct
 - Bean Validation
-- 106 unit-тестов
+- 201 unit-тест
 
 ---
 
@@ -190,10 +190,9 @@ GET /stats?start=2024-01-01 00:00:00&end=2024-12-31 23:59:59&uris=/events/1&uniq
 ## 👥 Авторы
 
 Команда 
-@DokPlay
+@DokPlay 
 @Ibragim1111
 @VanoStreyPracticum
-
 
 ---
 

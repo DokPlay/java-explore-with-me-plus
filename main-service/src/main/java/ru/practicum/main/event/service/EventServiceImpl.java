@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.client.StatsClient;
 import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.StatsRequestDto;
-import ru.practicum.dto.StatsResponseDto;
+import ru.practicum.dto.ViewStatsDto;
 import ru.practicum.main.category.model.Category;
 import ru.practicum.main.category.repository.CategoryRepository;
 import ru.practicum.main.event.dto.EventFullDto;
@@ -26,9 +26,17 @@ import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
+import ru.practicum.main.location.model.ManagedLocation;
+import ru.practicum.main.location.repository.ManagedLocationRepository;
+import ru.practicum.main.moderation.dto.EventModerationLogDto;
+import ru.practicum.main.moderation.mapper.EventModerationLogMapper;
+import ru.practicum.main.moderation.model.EventModerationLog;
+import ru.practicum.main.moderation.repository.EventModerationLogRepository;
+import ru.practicum.main.moderation.status.EventModerationAction;
+import ru.practicum.main.rating.repository.EventRatingRepository;
+import ru.practicum.main.rating.status.VoteType;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
-
 import ru.practicum.main.util.PaginationValidator;
 
 import java.time.LocalDateTime;
@@ -83,11 +91,21 @@ public class EventServiceImpl implements EventService {
     /** Minimum time before the event for admin publication (hours) */
     private static final int HOURS_BEFORE_EVENT_ADMIN = 1;
 
+    private static final String DEFAULT_REJECT_REASON = "Отклонено администратором";
+    private static final String SORT_VIEWS = "VIEWS";
+    private static final String SORT_RATING = "RATING";
+    private static final double KM_PER_LATITUDE_DEGREE = 111.32d;
+    private static final double EARTH_RADIUS_KM = 6371.0088d;
+
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final EventMapper eventMapper;
     private final StatsClient statsClient;
+    private final EventModerationLogRepository eventModerationLogRepository;
+    private final EventModerationLogMapper eventModerationLogMapper;
+    private final EventRatingRepository eventRatingRepository;
+    private final ManagedLocationRepository managedLocationRepository;
 
     // Private API — operations for authorized users
 
@@ -99,6 +117,7 @@ public class EventServiceImpl implements EventService {
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
         List<Event> events = eventRepository.findAllByInitiatorId(userId, pageable).getContent();
+        enrichEventsWithViews(events);
 
         return eventMapper.toEventShortDtoList(events);
     }
@@ -136,6 +155,7 @@ public class EventServiceImpl implements EventService {
 
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
+        enrichEventWithViews(event);
 
         return eventMapper.toEventFullDto(event);
     }
@@ -197,6 +217,7 @@ public class EventServiceImpl implements EventService {
 
         List<Event> events = eventRepository.findEventsForAdmin(
                 users, states, categories, rangeStart, rangeEnd, pageable).getContent();
+        enrichEventsWithViews(events);
 
         return eventMapper.toEventFullDtoList(events);
     }
@@ -221,6 +242,9 @@ public class EventServiceImpl implements EventService {
         }
 
         eventMapper.updateEventFromAdminRequest(updateRequest, event);
+        if (updateRequest.getModerationNote() != null) {
+            event.setModerationNote(normalizeNote(updateRequest.getModerationNote()));
+        }
 
         if (updateRequest.getStateAction() != null) {
             switch (updateRequest.getStateAction()) {
@@ -234,12 +258,20 @@ public class EventServiceImpl implements EventService {
                     }
                     event.setState(EventState.PUBLISHED);
                     event.setPublishedOn(LocalDateTime.now());
+                    String note = normalizeNote(updateRequest.getModerationNote());
+                    event.setModerationNote(note);
+                    saveModerationLog(event, EventModerationAction.PUBLISH, note);
                 }
                 case REJECT_EVENT -> {
                     if (event.getState() == EventState.PUBLISHED) {
                         throw new ConflictException("Нельзя отклонить опубликованное событие");
                     }
+                    String note = hasText(updateRequest.getModerationNote())
+                            ? updateRequest.getModerationNote().trim()
+                            : DEFAULT_REJECT_REASON;
                     event.setState(EventState.CANCELED);
+                    event.setModerationNote(note);
+                    saveModerationLog(event, EventModerationAction.REJECT, note);
                 }
             }
         }
@@ -248,6 +280,26 @@ public class EventServiceImpl implements EventService {
         log.info("Событие обновлено администратором: id={}", updatedEvent.getId());
 
         return eventMapper.toEventFullDto(updatedEvent);
+    }
+
+    @Override
+    public List<EventModerationLogDto> getEventModerationHistory(Long eventId, int from, int size) {
+        log.info("Получение истории модерации события eventId={}", eventId);
+        PaginationValidator.validatePagination(from, size);
+
+        if (!eventRepository.existsById(eventId)) {
+            throw new NotFoundException("Событие не найдено: id=" + eventId);
+        }
+
+        Pageable pageable = PageRequest.of(
+                from / size,
+                size,
+                Sort.by("actedOn").descending().and(Sort.by("id").descending())
+        );
+
+        List<EventModerationLog> history = eventModerationLogRepository.findAllByEventId(eventId, pageable)
+                .getContent();
+        return eventModerationLogMapper.toDtoList(history);
     }
 
     // Public API — public operations
@@ -264,46 +316,58 @@ public class EventServiceImpl implements EventService {
             int from,
             int size,
             HttpServletRequest request) {
+
         log.info("Публичный поиск событий: text={}, categories={}, paid={}", text, categories, paid);
         PaginationValidator.validatePagination(from, size);
 
-        // If the range is not specified, use now as the start
+        // Если from большой, можно сразу вернуть пустой результат
+        int maxAllowedFrom = 10000; // Максимальный допустимый from
+        if (from > maxAllowedFrom) {
+            log.warn("Запрошен слишком большой from={}, возвращаем пустой результат", from);
+            return List.of();
+        }
+
         LocalDateTime start = rangeStart != null ? rangeStart : LocalDateTime.now();
         LocalDateTime end = rangeEnd;
 
-        // Validate the date range
         if (end != null && start.isAfter(end)) {
             throw new ValidationException("Дата начала не может быть после даты окончания");
         }
 
-        boolean sortByViews = "VIEWS".equalsIgnoreCase(sort);
-        Pageable pageable = sortByViews
-                ? Pageable.unpaged()
-                : PageRequest.of(from / size, size, Sort.by("eventDate").ascending());
+        boolean sortByViews = isSortByViews(sort);
+        boolean sortByRating = isSortByRating(sort);
 
-        List<Event> events = eventRepository.findPublicEvents(
-                text, categories, paid, start, end,
-                onlyAvailable != null && onlyAvailable, pageable).getContent();
+        // Для сортировки по просмотрам/рейтингу используем ограниченную выборку + пагинацию в БД
+        if (sortByViews || sortByRating) {
+            // Увеличиваем лимит для возможности сортировки в памяти, но не бесконечно
+            int fetchSize = Math.min(size * 3, 500); // Максимум 500 записей для сортировки
+            Pageable fetchPageable = PageRequest.of(0, fetchSize);
 
-        // Record the request in stats
-        saveHit(request);
+            List<Event> events = eventRepository.findPublicEvents(
+                    text, categories, paid, start, end,
+                    onlyAvailable != null && onlyAvailable, fetchPageable).getContent();
 
-        // Fetch view statistics
-        Map<Long, Long> viewsMap = getViewsForEvents(events);
-        events.forEach(e -> e.setViews(viewsMap.getOrDefault(e.getId(), 0L)));
+            enrichEventsWithViews(events);
 
-        // Apply sorting to the result and paginate when sorting by views
-        if (sortByViews) {
-            events = events.stream()
-                    .sorted(Comparator.comparing(Event::getViews).reversed())
-                    .collect(Collectors.toList());
+            // Сортировка с учетом views/rating
+            events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate));
 
-            int startIdx = Math.min(from, events.size());
-            int endIdx = Math.min(startIdx + size, events.size());
-            events = events.subList(startIdx, endIdx);
+            // Ручная пагинация
+            events = applyManualPagination(events, from, size);
+
+            return eventMapper.toEventShortDtoList(events);
+        } else {
+            // Обычная пагинация в БД
+            Pageable pageable = PageRequest.of(from / size, size, Sort.by("eventDate").ascending());
+            List<Event> events = eventRepository.findPublicEvents(
+                    text, categories, paid, start, end,
+                    onlyAvailable != null && onlyAvailable, pageable).getContent();
+
+            saveHit(request);
+            enrichEventsWithViews(events);
+
+            return eventMapper.toEventShortDtoList(events);
         }
-
-        return eventMapper.toEventShortDtoList(events);
     }
 
     @Override
@@ -317,8 +381,7 @@ public class EventServiceImpl implements EventService {
         saveHit(request);
 
         // Update event views from stats
-        Map<Long, Long> viewsMap = getViewsForEvents(List.of(event));
-        event.setViews(viewsMap.getOrDefault(eventId, 0L));
+        enrichEventWithViews(event);
 
         return eventMapper.toEventFullDto(event);
     }
@@ -327,7 +390,122 @@ public class EventServiceImpl implements EventService {
     public EventFullDto getEventById(Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
+        enrichEventWithViews(event);
         return eventMapper.toEventFullDto(event);
+    }
+
+    @Override
+    public List<EventShortDto> getPublishedEventsByInitiators(List<Long> initiatorIds,
+                                                              String sort,
+                                                              int from,
+                                                              int size) {
+        PaginationValidator.validatePagination(from, size);
+
+        if (initiatorIds == null || initiatorIds.isEmpty()) {
+            return List.of();
+        }
+
+        // Ограничиваем количество initiators для предотвращения слишком больших выборок
+        List<Long> uniqueInitiatorIds = initiatorIds.stream()
+                .distinct()
+                .limit(100) // Максимум 100 авторов за раз
+                .toList();
+
+        boolean sortByViews = isSortByViews(sort);
+        boolean sortByRating = isSortByRating(sort);
+
+        if (sortByViews || sortByRating) {
+            // Для сортировки по просмотрам/рейтингу используем ограниченную выборку
+            int fetchSize = Math.min(size * 3, 300);
+            Pageable fetchPageable = PageRequest.of(0, fetchSize,
+                    Sort.by("eventDate").descending().and(Sort.by("id").descending()));
+
+            List<Event> events = eventRepository.findAllByInitiatorIdInAndState(
+                            uniqueInitiatorIds,
+                            EventState.PUBLISHED,
+                            fetchPageable
+                    )
+                    .getContent();
+
+            enrichEventsWithViews(events);
+
+            events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate).reversed());
+            events = applyManualPagination(events, from, size);
+
+            return eventMapper.toEventShortDtoList(events);
+        } else {
+            Pageable pageable = PageRequest.of(
+                    from / size,
+                    size,
+                    Sort.by("eventDate").descending().and(Sort.by("id").descending())
+            );
+
+            List<Event> events = eventRepository.findAllByInitiatorIdInAndState(
+                            uniqueInitiatorIds,
+                            EventState.PUBLISHED,
+                            pageable
+                    )
+                    .getContent();
+
+            enrichEventsWithViews(events);
+
+            return eventMapper.toEventShortDtoList(events);
+        }
+    }
+
+    @Override
+    public List<EventShortDto> searchPublicEventsByLocation(Long locationId,
+                                                            Double radiusKm,
+                                                            String sort,
+                                                            int from,
+                                                            int size,
+                                                            HttpServletRequest request) {
+        PaginationValidator.validatePagination(from, size);
+
+        ManagedLocation location = managedLocationRepository.findByIdAndActiveTrue(locationId)
+                .orElseThrow(() -> new NotFoundException("Активная локация не найдена: id=" + locationId));
+
+        double effectiveRadiusKm = radiusKm != null ? radiusKm : location.getRadiusKm();
+        if (effectiveRadiusKm <= 0) {
+            throw new ValidationException("Радиус поиска должен быть больше 0");
+        }
+
+        double centerLat = location.getLat();
+        double centerLon = location.getLon();
+
+        // Сначала получаем события с пагинацией
+        int pageSize = size * 2; // Запрашиваем немного больше для фильтрации
+        Pageable pageable = PageRequest.of(from / size, pageSize);
+
+        List<Event> pagedEvents = eventRepository.findPublishedEventsWithPagination(pageable).getContent();
+
+        // Фильтруем по расстоянию
+        List<Event> nearbyEvents = pagedEvents.stream()
+                .filter(event -> event.getLocation() != null
+                        && event.getLocation().getLat() != null
+                        && event.getLocation().getLon() != null)
+                .filter(event -> calculateDistanceKm(
+                        centerLat,
+                        centerLon,
+                        event.getLocation().getLat(),
+                        event.getLocation().getLon()
+                ) <= effectiveRadiusKm)
+                .limit(size) // Ограничиваем результат
+                .toList();
+
+        saveHit(request);
+        enrichEventsWithViews(nearbyEvents);
+
+        // Если нужно больше событий и мы не набрали достаточно
+        if (nearbyEvents.size() < size && pagedEvents.size() == pageSize) {
+            // Можно добавить логику для получения следующих страниц
+            log.debug("Получено только {} событий из {}, требуется дополнительная загрузка",
+                    nearbyEvents.size(), size);
+        }
+
+        List<Event> sorted = sortEvents(nearbyEvents, sort, Comparator.comparing(Event::getEventDate));
+
+        return eventMapper.toEventShortDtoList(sorted);
     }
 
     // Private methods — helper operations
@@ -383,12 +561,12 @@ public class EventServiceImpl implements EventService {
             requestDto.setUris(uris);
             requestDto.setUnique(true);
 
-            List<StatsResponseDto> stats = statsClient.getStats(requestDto);
+            List<ViewStatsDto> stats = statsClient.getStats(requestDto);
 
             return stats.stream()
                     .collect(Collectors.toMap(
                             s -> extractEventIdFromUri(s.getUri()),
-                            StatsResponseDto::getHits,
+                            ViewStatsDto::getHits,
                             (a, b) -> a));
         } catch (Exception e) {
             log.warn("Ошибка при получении статистики: {}", e.getMessage());
@@ -399,5 +577,121 @@ public class EventServiceImpl implements EventService {
     private Long extractEventIdFromUri(String uri) {
         String[] parts = uri.split("/");
         return Long.parseLong(parts[parts.length - 1]);
+    }
+
+    private void enrichEventsWithViews(List<Event> events) {
+        if (events.isEmpty()) {
+            return;
+        }
+        Map<Long, Long> viewsMap = getViewsForEvents(events);
+        events.forEach(event -> event.setViews(viewsMap.getOrDefault(event.getId(), 0L)));
+    }
+
+    private void enrichEventWithViews(Event event) {
+        enrichEventsWithViews(List.of(event));
+    }
+
+    private List<Event> sortEvents(List<Event> events, String sort, Comparator<Event> defaultComparator) {
+        if (events.isEmpty()) {
+            return events;
+        }
+
+        if (isSortByViews(sort)) {
+            return events.stream()
+                    .sorted(Comparator.comparing(
+                                    Event::getViews,
+                                    Comparator.nullsLast(Comparator.reverseOrder())
+                            )
+                            .thenComparing(Event::getEventDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .toList();
+        }
+
+        if (isSortByRating(sort)) {
+            Map<Long, Long> scoreMap = getRatingScoresForEvents(events);
+            return events.stream()
+                    .sorted(Comparator
+                            .comparing(
+                                    (Event event) -> scoreMap.getOrDefault(event.getId(), 0L),
+                                    Comparator.reverseOrder()
+                            )
+                            .thenComparing(
+                                    Event::getViews,
+                                    Comparator.nullsLast(Comparator.reverseOrder())
+                            )
+                            .thenComparing(
+                                    Event::getEventDate,
+                                    Comparator.nullsLast(Comparator.naturalOrder())
+                            ))
+                    .toList();
+        }
+
+        return events.stream()
+                .sorted(defaultComparator)
+                .toList();
+    }
+
+    private Map<Long, Long> getRatingScoresForEvents(List<Event> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> eventIds = events.stream()
+                .map(Event::getId)
+                .toList();
+
+        return eventRatingRepository.findScoresByEventIds(eventIds, VoteType.LIKE, VoteType.DISLIKE)
+                .stream()
+                .collect(Collectors.toMap(
+                        EventRatingRepository.EventScoreProjection::getEventId,
+                        score -> score.getScore() == null ? 0L : score.getScore().longValue()
+                ));
+    }
+
+    private boolean isSortByViews(String sort) {
+        return SORT_VIEWS.equalsIgnoreCase(sort);
+    }
+
+    private boolean isSortByRating(String sort) {
+        return SORT_RATING.equalsIgnoreCase(sort);
+    }
+
+    private List<Event> applyManualPagination(List<Event> events, int from, int size) {
+        int startIdx = Math.min(from, events.size());
+        int endIdx = Math.min(startIdx + size, events.size());
+        return events.subList(startIdx, endIdx);
+    }
+
+    private double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+        double lat1Rad = Math.toRadians(lat1);
+        double lon1Rad = Math.toRadians(lon1);
+        double lat2Rad = Math.toRadians(lat2);
+        double lon2Rad = Math.toRadians(lon2);
+
+        double dLat = lat2Rad - lat1Rad;
+        double dLon = lon2Rad - lon1Rad;
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(lat1Rad) * Math.cos(lat2Rad)
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return EARTH_RADIUS_KM * c;
+    }
+
+    private void saveModerationLog(Event event, EventModerationAction action, String note) {
+        EventModerationLog logEntry = EventModerationLog.builder()
+                .event(event)
+                .action(action)
+                .note(note)
+                .actedOn(LocalDateTime.now())
+                .build();
+        eventModerationLogRepository.save(logEntry);
+    }
+
+    private String normalizeNote(String value) {
+        return hasText(value) ? value.trim() : null;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

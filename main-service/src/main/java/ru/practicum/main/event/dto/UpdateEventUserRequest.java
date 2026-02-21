@@ -1,6 +1,7 @@
 package ru.practicum.main.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -47,6 +48,7 @@ public class UpdateEventUserRequest {
     /**
      * Updated coordinates.
      */
+    @Valid
     private LocationDto location;
 
     /**

@@ -213,8 +213,8 @@ class EventDtoValidationTest {
         }
 
         @Test
-        @DisplayName("Null широта допустима - нет аннотации @NotNull")
-        void nullLat_IsAllowed() {
+        @DisplayName("Null широта должна нарушать валидацию")
+        void nullLat_HasViolation() {
             // Setup
             LocationDto dto = new LocationDto(null, 37.62f);
 
@@ -222,12 +222,15 @@ class EventDtoValidationTest {
             Set<ConstraintViolation<LocationDto>> violations = validator.validate(dto);
 
             // Assert
-            assertThat(violations).isEmpty();
+            assertThat(violations).isNotEmpty();
+            assertThat(violations)
+                    .extracting(v -> v.getPropertyPath().toString())
+                    .contains("lat");
         }
 
         @Test
-        @DisplayName("Null долгота допустима - нет аннотации @NotNull")
-        void nullLon_IsAllowed() {
+        @DisplayName("Null долгота должна нарушать валидацию")
+        void nullLon_HasViolation() {
             // Setup
             LocationDto dto = new LocationDto(55.75f, null);
 
@@ -235,7 +238,43 @@ class EventDtoValidationTest {
             Set<ConstraintViolation<LocationDto>> violations = validator.validate(dto);
 
             // Assert
-            assertThat(violations).isEmpty();
+            assertThat(violations).isNotEmpty();
+            assertThat(violations)
+                    .extracting(v -> v.getPropertyPath().toString())
+                    .contains("lon");
+        }
+    }
+
+    @Nested
+    @DisplayName("UpdateEventAdminRequest Validation")
+    class UpdateEventAdminRequestValidationTests {
+
+        @Test
+        @DisplayName("moderationNote из одних пробелов должна нарушать валидацию")
+        void blankModerationNote_HasViolation() {
+            UpdateEventAdminRequest dto = UpdateEventAdminRequest.builder()
+                    .moderationNote("   ")
+                    .build();
+
+            Set<ConstraintViolation<UpdateEventAdminRequest>> violations = validator.validate(dto);
+
+            assertThat(violations)
+                    .extracting(v -> v.getPropertyPath().toString())
+                    .contains("moderationNote");
+        }
+
+        @Test
+        @DisplayName("moderationNote null не должна нарушать валидацию")
+        void nullModerationNote_NoViolations() {
+            UpdateEventAdminRequest dto = UpdateEventAdminRequest.builder()
+                    .moderationNote(null)
+                    .build();
+
+            Set<ConstraintViolation<UpdateEventAdminRequest>> violations = validator.validate(dto);
+
+            assertThat(violations)
+                    .extracting(v -> v.getPropertyPath().toString())
+                    .doesNotContain("moderationNote");
         }
     }
 }

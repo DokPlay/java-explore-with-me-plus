@@ -82,7 +82,7 @@ public class CompilationServiceImpl implements CompilationService {
         PageRequest page = PageRequest.of(from / size, size);
         List<Compilation> comps = pinned == null
                 ? compilationRepository.findAll(page).getContent()
-                : compilationRepository.findAllByPinned(pinned, page);
+                : compilationRepository.findAllByPinned(pinned, page).getContent();
 
         return comps.stream().map(this::toDto).toList();
     }

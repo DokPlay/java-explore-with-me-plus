@@ -1,0 +1,1505 @@
+{
+  "info": {
+    "_postman_id": "5f2f7f52-7d69-4c9f-8f38-5aa8d986d8f6",
+    "name": "EWM Feature - Stage 3 Additional Functionality",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Happy Path (Auto Setup)",
+      "item": [
+        {
+          "name": "POST /users/{userId}/events/{eventId}/comments - happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const main = async () => {",
+                  "    const baseUrl = pm.collectionVariables.get(\"baseUrl\");",
+                  "    const send = (request) => new Promise((resolve, reject) => {",
+                  "        pm.sendRequest(request, (err, res) => err ? reject(err) : resolve(res));",
+                  "    });",
+                  "",
+                  "    const suffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;",
+                  "    const eventMoment = new Date(Date.now() + 6 * 60 * 60 * 1000);",
+                  "    const pad = (n) => String(n).padStart(2, \"0\");",
+                  "    const eventDate = `${eventMoment.getFullYear()}-${pad(eventMoment.getMonth() + 1)}-${pad(eventMoment.getDate())} ${pad(eventMoment.getHours())}:${pad(eventMoment.getMinutes())}:${pad(eventMoment.getSeconds())}`;",
+                  "",
+                  "    const initiatorRes = await send({",
+                  "        url: `${baseUrl}/admin/users`,",
+                  "        method: \"POST\",",
+                  "        header: { \"Content-Type\": \"application/json\" },",
+                  "        body: {",
+                  "            mode: \"raw\",",
+                  "            raw: JSON.stringify({",
+                  "                name: `Happy Initiator ${suffix}`,",
+                  "                email: `happy_initiator_${suffix}@mail.com`",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    if (initiatorRes.code !== 201) {",
+                  "        throw new Error(`Failed to create initiator user: ${initiatorRes.code} ${initiatorRes.text()}`);",
+                  "    }",
+                  "    const initiatorId = initiatorRes.json().id;",
+                  "",
+                  "    const commenterRes = await send({",
+                  "        url: `${baseUrl}/admin/users`,",
+                  "        method: \"POST\",",
+                  "        header: { \"Content-Type\": \"application/json\" },",
+                  "        body: {",
+                  "            mode: \"raw\",",
+                  "            raw: JSON.stringify({",
+                  "                name: `Happy Commenter ${suffix}`,",
+                  "                email: `happy_commenter_${suffix}@mail.com`",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    if (commenterRes.code !== 201) {",
+                  "        throw new Error(`Failed to create commenter user: ${commenterRes.code} ${commenterRes.text()}`);",
+                  "    }",
+                  "    const commenterId = commenterRes.json().id;",
+                  "",
+                  "    const categoryRes = await send({",
+                  "        url: `${baseUrl}/admin/categories`,",
+                  "        method: \"POST\",",
+                  "        header: { \"Content-Type\": \"application/json\" },",
+                  "        body: {",
+                  "            mode: \"raw\",",
+                  "            raw: JSON.stringify({",
+                  "                name: `Happy category ${suffix}`",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    if (categoryRes.code !== 201) {",
+                  "        throw new Error(`Failed to create category: ${categoryRes.code} ${categoryRes.text()}`);",
+                  "    }",
+                  "    const categoryId = categoryRes.json().id;",
+                  "",
+                  "    const eventRes = await send({",
+                  "        url: `${baseUrl}/users/${initiatorId}/events`,",
+                  "        method: \"POST\",",
+                  "        header: { \"Content-Type\": \"application/json\" },",
+                  "        body: {",
+                  "            mode: \"raw\",",
+                  "            raw: JSON.stringify({",
+                  "                title: `Happy event ${suffix}`,",
+                  "                annotation: \"Happy path event annotation with enough symbols for validation.\",",
+                  "                description: \"Happy path event description with enough symbols for all validation checks.\",",
+                  "                category: categoryId,",
+                  "                eventDate: eventDate,",
+                  "                location: { lat: 55.7558, lon: 37.6176 },",
+                  "                paid: false,",
+                  "                participantLimit: 10,",
+                  "                requestModeration: true",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    if (eventRes.code !== 201) {",
+                  "        throw new Error(`Failed to create event: ${eventRes.code} ${eventRes.text()}`);",
+                  "    }",
+                  "    const eventId = eventRes.json().id;",
+                  "",
+                  "    const publishEventRes = await send({",
+                  "        url: `${baseUrl}/admin/events/${eventId}`,",
+                  "        method: \"PATCH\",",
+                  "        header: { \"Content-Type\": \"application/json\" },",
+                  "        body: {",
+                  "            mode: \"raw\",",
+                  "            raw: JSON.stringify({ stateAction: \"PUBLISH_EVENT\" })",
+                  "        }",
+                  "    });",
+                  "    if (publishEventRes.code !== 200) {",
+                  "        throw new Error(`Failed to publish event: ${publishEventRes.code} ${publishEventRes.text()}`);",
+                  "    }",
+                  "",
+                  "    pm.collectionVariables.set(\"happyCommenterId\", commenterId);",
+                  "    pm.collectionVariables.set(\"happyEventId\", eventId);",
+                  "};",
+                  "",
+                  "const interval = setInterval(() => {}, 1000);",
+                  "",
+                  "setTimeout(async () => {",
+                  "    try {",
+                  "        await main();",
+                  "    } catch (err) {",
+                  "        console.error(\"Happy-path setup failed\", err);",
+                  "        throw err;",
+                  "    } finally {",
+                  "        clearInterval(interval);",
+                  "    }",
+                  "}, 100);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set(\"happyCommentId\", json.id);",
+                  "",
+                  "pm.test(\"Response contains created comment id\", function () {",
+                  "    pm.expect(json.id).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Happy path comment: create and then publish\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{happyCommenterId}}/events/{{happyEventId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{happyCommenterId}}",
+                "events",
+                "{{happyEventId}}",
+                "comments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /events/{eventId}/comments - happy path published comments",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const main = async () => {",
+                  "    const baseUrl = pm.collectionVariables.get(\"baseUrl\");",
+                  "    const eventId = pm.collectionVariables.get(\"happyEventId\");",
+                  "    const commentId = pm.collectionVariables.get(\"happyCommentId\");",
+                  "",
+                  "    if (!eventId || !commentId) {",
+                  "        throw new Error(\"Missing happy-path variables. Run the previous happy-path request first.\");",
+                  "    }",
+                  "",
+                  "    const send = (request) => new Promise((resolve, reject) => {",
+                  "        pm.sendRequest(request, (err, res) => err ? reject(err) : resolve(res));",
+                  "    });",
+                  "",
+                  "    const publishCommentRes = await send({",
+                  "        url: `${baseUrl}/admin/comments/${commentId}`,",
+                  "        method: \"PATCH\",",
+                  "        header: { \"Content-Type\": \"application/json\" },",
+                  "        body: {",
+                  "            mode: \"raw\",",
+                  "            raw: JSON.stringify({",
+                  "                action: \"PUBLISH\",",
+                  "                moderationNote: \"Approved by happy-path test\"",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "",
+                  "    if (publishCommentRes.code !== 200) {",
+                  "        throw new Error(`Failed to publish comment: ${publishCommentRes.code} ${publishCommentRes.text()}`);",
+                  "    }",
+                  "};",
+                  "",
+                  "const interval = setInterval(() => {}, 1000);",
+                  "",
+                  "setTimeout(async () => {",
+                  "    try {",
+                  "        await main();",
+                  "    } catch (err) {",
+                  "        console.error(\"Happy-path publish setup failed\", err);",
+                  "        throw err;",
+                  "    } finally {",
+                  "        clearInterval(interval);",
+                  "    }",
+                  "}, 100);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "const expectedCommentId = Number(pm.collectionVariables.get(\"happyCommentId\"));",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    pm.expect(Array.isArray(json)).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test(\"Contains published happy-path comment\", function () {",
+                  "    const comment = json.find(item => item.id === expectedCommentId);",
+                  "    pm.expect(comment).to.not.be.undefined;",
+                  "    pm.expect(comment.status).to.eql(\"PUBLISHED\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{happyEventId}}/comments?from=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{happyEventId}}",
+                "comments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public Comments",
+      "item": [
+        {
+          "name": "GET /events/{eventId}/comments - invalid eventId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/0/comments?from=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "0",
+                "comments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /events/{eventId}/comments/{commentId} - not found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/999999/comments/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "999999",
+                "comments",
+                "999999"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Private Comments",
+      "item": [
+        {
+          "name": "POST /users/{userId}/events/{eventId}/comments - invalid userId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Новый комментарий\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/0/events/1/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "0",
+                "events",
+                "1",
+                "comments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /users/{userId}/comments/{commentId} - invalid commentId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Обновлённый текст\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/1/comments/0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "comments",
+                "0"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/comments - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/1/comments?from=0&size=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "comments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /users/{userId}/comments/{commentId} - invalid commentId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/1/comments/0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "comments",
+                "0"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Comments",
+      "item": [
+        {
+          "name": "GET /admin/comments - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/comments?from=-1&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "comments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "-1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /admin/comments/{commentId} - missing action",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/comments/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "comments",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /admin/comments/{commentId} - not found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/comments/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "comments",
+                "999999"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "POST /users/{userId}/subscriptions - happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const main = async () => {",
+                  "    const baseUrl = pm.collectionVariables.get('baseUrl');",
+                  "    const send = (request) => new Promise((resolve, reject) => {",
+                  "        pm.sendRequest(request, (err, res) => err ? reject(err) : resolve(res));",
+                  "    });",
+                  "",
+                  "    const suffix = String(Date.now()) + '_' + String(Math.floor(Math.random() * 10000));",
+                  "",
+                  "    const createUser = (name, email) => send({",
+                  "        url: baseUrl + '/admin/users',",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({ name: name, email: email })",
+                  "        }",
+                  "    });",
+                  "",
+                  "    const followerRes = await createUser('Sub Follower ' + suffix, 'sub_follower_' + suffix + '@mail.com');",
+                  "    if (followerRes.code !== 201) {",
+                  "        throw new Error('Failed to create follower: ' + followerRes.code + ' ' + followerRes.text());",
+                  "    }",
+                  "",
+                  "    const targetRes = await createUser('Sub Target ' + suffix, 'sub_target_' + suffix + '@mail.com');",
+                  "    if (targetRes.code !== 201) {",
+                  "        throw new Error('Failed to create target user: ' + targetRes.code + ' ' + targetRes.text());",
+                  "    }",
+                  "",
+                  "    pm.collectionVariables.set('subFollowerId', followerRes.json().id);",
+                  "    pm.collectionVariables.set('subTargetId', targetRes.json().id);",
+                  "};",
+                  "",
+                  "main().catch((err) => {",
+                  "    throw err;",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{subFollowerId}}/subscriptions?targetUserId={{subTargetId}}",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/subscriptions - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/subscriptions?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "DELETE /users/{userId}/subscriptions - invalid targetUserId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/subscriptions?targetUserId=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/subscriptions/followers - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/subscriptions/followers?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rating Events",
+      "item": [
+        {
+          "name": "PUT /users/{userId}/events/{eventId}/rating - happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const main = async () => {",
+                  "    const baseUrl = pm.collectionVariables.get('baseUrl');",
+                  "    const send = (request) => new Promise((resolve, reject) => {",
+                  "        pm.sendRequest(request, (err, res) => err ? reject(err) : resolve(res));",
+                  "    });",
+                  "",
+                  "    const suffix = String(Date.now()) + '_' + String(Math.floor(Math.random() * 10000));",
+                  "    const eventMoment = new Date(Date.now() + 6 * 60 * 60 * 1000);",
+                  "    const pad = (n) => String(n).padStart(2, '0');",
+                  "    const eventDate = eventMoment.getFullYear() + '-' + pad(eventMoment.getMonth() + 1) + '-' + pad(eventMoment.getDate()) + ' ' + pad(eventMoment.getHours()) + ':' + pad(eventMoment.getMinutes()) + ':' + pad(eventMoment.getSeconds());",
+                  "",
+                  "    const createUser = (name, email) => send({",
+                  "        url: baseUrl + '/admin/users',",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({ name: name, email: email })",
+                  "        }",
+                  "    });",
+                  "",
+                  "    const initiatorRes = await createUser('Rating Initiator ' + suffix, 'rating_initiator_' + suffix + '@mail.com');",
+                  "    if (initiatorRes.code !== 201) {",
+                  "        throw new Error('Failed to create initiator: ' + initiatorRes.code + ' ' + initiatorRes.text());",
+                  "    }",
+                  "    const initiatorId = initiatorRes.json().id;",
+                  "",
+                  "    const voterRes = await createUser('Rating Voter ' + suffix, 'rating_voter_' + suffix + '@mail.com');",
+                  "    if (voterRes.code !== 201) {",
+                  "        throw new Error('Failed to create voter: ' + voterRes.code + ' ' + voterRes.text());",
+                  "    }",
+                  "    const voterId = voterRes.json().id;",
+                  "",
+                  "    const categoryRes = await send({",
+                  "        url: baseUrl + '/admin/categories',",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({ name: 'Rating category ' + suffix })",
+                  "        }",
+                  "    });",
+                  "    if (categoryRes.code !== 201) {",
+                  "        throw new Error('Failed to create category: ' + categoryRes.code + ' ' + categoryRes.text());",
+                  "    }",
+                  "    const categoryId = categoryRes.json().id;",
+                  "",
+                  "    const eventRes = await send({",
+                  "        url: baseUrl + '/users/' + initiatorId + '/events',",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({",
+                  "                title: 'Rating event ' + suffix,",
+                  "                annotation: 'Rating event annotation with enough symbols for validation.',",
+                  "                description: 'Rating event description with enough symbols for all validation checks.',",
+                  "                category: categoryId,",
+                  "                eventDate: eventDate,",
+                  "                location: { lat: 59.9343, lon: 30.3351 },",
+                  "                paid: false,",
+                  "                participantLimit: 10,",
+                  "                requestModeration: true",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    if (eventRes.code !== 201) {",
+                  "        throw new Error('Failed to create event: ' + eventRes.code + ' ' + eventRes.text());",
+                  "    }",
+                  "    const eventId = eventRes.json().id;",
+                  "",
+                  "    const publishRes = await send({",
+                  "        url: baseUrl + '/admin/events/' + eventId,",
+                  "        method: 'PATCH',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({",
+                  "                stateAction: 'PUBLISH_EVENT',",
+                  "                moderationNote: 'Published for rating tests'",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    if (publishRes.code !== 200) {",
+                  "        throw new Error('Failed to publish event: ' + publishRes.code + ' ' + publishRes.text());",
+                  "    }",
+                  "",
+                  "    pm.collectionVariables.set('ratingUserId', voterId);",
+                  "    pm.collectionVariables.set('ratingEventId', eventId);",
+                  "};",
+                  "",
+                  "main().catch((err) => {",
+                  "    throw err;",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{ratingUserId}}/events/{{ratingEventId}}/rating",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"vote\":\"LIKE\"}"
+            }
+          }
+        },
+        {
+          "name": "GET /events/{eventId}/rating - happy path",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/events/{{ratingEventId}}/rating",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "PUT /users/{userId}/events/{eventId}/rating - missing vote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/events/1/rating",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /users/{userId}/events/{eventId}/rating - invalid eventId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/events/0/rating",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /users/{userId}/ratings - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/1/ratings?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Location Processing",
+      "item": [
+        {
+          "name": "POST /admin/locations - happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = String(Date.now()) + '_' + String(Math.floor(Math.random() * 10000));",
+                  "pm.collectionVariables.set('locationName', 'Managed location ' + suffix);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const b=pm.response.json();",
+                  "pm.collectionVariables.set('managedLocationId',b.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"{{locationName}}\",\"lat\":55.7558,\"lon\":37.6176}"
+            }
+          }
+        },
+        {
+          "name": "GET /locations - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/locations?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "PATCH /admin/locations/{locationId} - invalid locationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations/0",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /admin/locations/{locationId} - invalid locationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations/0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /admin/locations/{locationId} - invalid locationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations/0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /admin/locations - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/locations?from=0&size=0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /locations/{locationId} - invalid locationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/locations/0",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Moderation Enhancement",
+      "item": [
+        {
+          "name": "PATCH /admin/events/{eventId} - moderation note happy path",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const main = async () => {",
+                  "    const baseUrl = pm.collectionVariables.get('baseUrl');",
+                  "    const send = (request) => new Promise((resolve, reject) => {",
+                  "        pm.sendRequest(request, (err, res) => err ? reject(err) : resolve(res));",
+                  "    });",
+                  "",
+                  "    const suffix = String(Date.now()) + '_' + String(Math.floor(Math.random() * 10000));",
+                  "    const eventMoment = new Date(Date.now() + 6 * 60 * 60 * 1000);",
+                  "    const pad = (n) => String(n).padStart(2, '0');",
+                  "    const eventDate = eventMoment.getFullYear() + '-' + pad(eventMoment.getMonth() + 1) + '-' + pad(eventMoment.getDate()) + ' ' + pad(eventMoment.getHours()) + ':' + pad(eventMoment.getMinutes()) + ':' + pad(eventMoment.getSeconds());",
+                  "",
+                  "    const userRes = await send({",
+                  "        url: baseUrl + '/admin/users',",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({",
+                  "                name: 'Moderation Initiator ' + suffix,",
+                  "                email: 'moderation_initiator_' + suffix + '@mail.com'",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    if (userRes.code !== 201) {",
+                  "        throw new Error('Failed to create initiator: ' + userRes.code + ' ' + userRes.text());",
+                  "    }",
+                  "    const userId = userRes.json().id;",
+                  "",
+                  "    const categoryRes = await send({",
+                  "        url: baseUrl + '/admin/categories',",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({ name: 'Moderation category ' + suffix })",
+                  "        }",
+                  "    });",
+                  "    if (categoryRes.code !== 201) {",
+                  "        throw new Error('Failed to create category: ' + categoryRes.code + ' ' + categoryRes.text());",
+                  "    }",
+                  "    const categoryId = categoryRes.json().id;",
+                  "",
+                  "    const eventRes = await send({",
+                  "        url: baseUrl + '/users/' + userId + '/events',",
+                  "        method: 'POST',",
+                  "        header: { 'Content-Type': 'application/json' },",
+                  "        body: {",
+                  "            mode: 'raw',",
+                  "            raw: JSON.stringify({",
+                  "                title: 'Moderation event ' + suffix,",
+                  "                annotation: 'Moderation event annotation with enough symbols for validation.',",
+                  "                description: 'Moderation event description with enough symbols for all validation checks.',",
+                  "                category: categoryId,",
+                  "                eventDate: eventDate,",
+                  "                location: { lat: 48.8566, lon: 2.3522 },",
+                  "                paid: false,",
+                  "                participantLimit: 25,",
+                  "                requestModeration: true",
+                  "            })",
+                  "        }",
+                  "    });",
+                  "    if (eventRes.code !== 201) {",
+                  "        throw new Error('Failed to create event: ' + eventRes.code + ' ' + eventRes.text());",
+                  "    }",
+                  "",
+                  "    pm.collectionVariables.set('moderationEventId', eventRes.json().id);",
+                  "};",
+                  "",
+                  "main().catch((err) => {",
+                  "    throw err;",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/events/{{moderationEventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"stateAction\":\"PUBLISH_EVENT\",\"moderationNote\":\"Published after moderation review\"}"
+            }
+          }
+        },
+        {
+          "name": "GET /admin/events/{eventId}/moderation-history - happy path",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/events/{{moderationEventId}}/moderation-history?from=0&size=10",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        },
+        {
+          "name": "GET /admin/events/{eventId}/moderation-history - invalid pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/events/1/moderation-history?from=-1&size=10",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "subFollowerId",
+      "value": ""
+    },
+    {
+      "key": "subTargetId",
+      "value": ""
+    },
+    {
+      "key": "ratingUserId",
+      "value": ""
+    },
+    {
+      "key": "ratingEventId",
+      "value": ""
+    },
+    {
+      "key": "managedLocationId",
+      "value": ""
+    },
+    {
+      "key": "locationName",
+      "value": ""
+    },
+    {
+      "key": "moderationEventId",
+      "value": ""
+    }
+  ]
+}

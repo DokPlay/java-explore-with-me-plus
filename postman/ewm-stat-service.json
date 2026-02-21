@@ -930,7 +930,7 @@
 					"    getPost() {",
 					"        return {",
 					"            app: \"ewm-main-service\",",
-					"            uri: \"/events/\" + pm.variables.replaceIn('{{$randomInt}}'),",
+					"            uri: \"/manual-hit/\" + pm.variables.replaceIn('{{$randomInt}}'),",
 					"            ip: pm.variables.replaceIn('{{$randomIP}}'),",
 					"            timestamp: this.getPastDateTime()",
 					"        }",
