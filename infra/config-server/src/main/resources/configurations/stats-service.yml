@@ -19,6 +19,8 @@ spring:
       schema-locations: classpath:schema.sql
 
 management:
+  server:
+    port: 9091
   endpoints:
     web:
       exposure:

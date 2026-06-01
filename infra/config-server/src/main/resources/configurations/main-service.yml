@@ -32,6 +32,8 @@ logging:
     org.springframework.web: INFO
 
 management:
+  server:
+    port: 8081
   endpoints:
     web:
       exposure:
