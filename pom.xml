@@ -12,8 +12,9 @@
 
 	<name>Explore With Me</name>
     <modules>
+        <module>core</module>
         <module>stats-service</module>
-        <module>main-service</module>
+        <module>infra</module>
     </modules>
 
 	<groupId>ru.practicum</groupId>
@@ -28,7 +29,27 @@
 		<tomcat.version>10.1.47</tomcat.version>
 		<logback.version>1.5.18</logback.version>
 		<postgresql.version>42.7.5</postgresql.version>
+        <lombok.version>1.18.42</lombok.version>
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
 	</properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 	<build>
 		<pluginManagement>
@@ -71,7 +92,7 @@
 				<plugin>
 					<groupId>com.github.spotbugs</groupId>
 					<artifactId>spotbugs-maven-plugin</artifactId>
-					<version>4.8.5.0</version>
+					<version>4.9.8.3</version>
 					<configuration>
 						<effort>Max</effort>
 						<threshold>High</threshold>
