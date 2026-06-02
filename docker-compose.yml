@@ -93,6 +93,110 @@ services:
       retries: 20
       start_period: 20s
 
+  event-service:
+    build: ./core/event-service
+    image: ewm-event-service
+    container_name: ewm-event-service
+    depends_on:
+      ewm-db:
+        condition: service_healthy
+      stats-server:
+        condition: service_healthy
+      ewm-service:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_USER: postgres
+      MAIN_DB_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  request-service:
+    build: ./core/request-service
+    image: ewm-request-service
+    container_name: ewm-request-service
+    depends_on:
+      ewm-db:
+        condition: service_healthy
+      ewm-service:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_USER: postgres
+      MAIN_DB_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  user-admin-service:
+    build: ./core/user-admin-service
+    image: ewm-user-admin-service
+    container_name: ewm-user-admin-service
+    depends_on:
+      ewm-db:
+        condition: service_healthy
+      ewm-service:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_USER: postgres
+      MAIN_DB_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  extra-service:
+    build: ./core/extra-service
+    image: ewm-extra-service
+    container_name: ewm-extra-service
+    depends_on:
+      ewm-db:
+        condition: service_healthy
+      stats-server:
+        condition: service_healthy
+      ewm-service:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_USER: postgres
+      MAIN_DB_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
   ewm-db:
     image: postgres:16
     container_name: main-db
@@ -121,6 +225,14 @@ services:
       config-server:
         condition: service_healthy
       ewm-service:
+        condition: service_healthy
+      event-service:
+        condition: service_healthy
+      request-service:
+        condition: service_healthy
+      user-admin-service:
+        condition: service_healthy
+      extra-service:
         condition: service_healthy
       stats-server:
         condition: service_healthy

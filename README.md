@@ -75,27 +75,92 @@ HTTP-клиент для взаимодействия с сервисом ста
 
 ---
 
+## ✅ Этап 2: Разбивка основного сервиса на микросервисы
+
+### Выделенные сервисы
+
+- `event-service` — управление мероприятиями, категориями, локациями и модерацией событий.
+- `participation-service` — управление заявками на участие. Maven-модуль расположен в `core/request-service`.
+- `user-admin-service` — административное управление пользователями.
+- `extra-service` — дополнительная функциональность: комментарии, подборки, рейтинги, подписки.
+- `main-domain` — общий доменный модуль с DTO, сущностями, репозиториями, мапперами и бизнес-сервисами, вынесенными из `main-service`.
+- `main-service` — переходный boot-модуль; в нём оставлен запуск приложения и инициализация схемы, доменная реализация вынесена.
+
+### Инфраструктура
+
+- `discovery-server` — Eureka service discovery.
+- `config-server` — Spring Cloud Config Server, работает в `native`-режиме и читает конфигурации из `classpath:/configurations`.
+- `gateway-server` — единая входная точка API на порту `8080`.
+- `stats-service` — сервис статистики, доступен через Gateway и напрямую на опубликованном Docker-порту `9090`.
+
+### Внешний API
+
+Все клиентские запросы к основному API проходят через Gateway: `http://localhost:8080`.
+
+Публичные спецификации:
+
+- основной сервис: `ewm-main-service-spec.json`;
+- сервис статистики: `ewm-stats-service-spec.json`.
+
+Основные маршруты Gateway:
+
+- `event-service`: `/events/**`, `/admin/events/**`, `/users/*/events/**`, `/categories/**`, `/admin/categories/**`, `/locations/**`, `/admin/locations/**`, `/internal/events/**`;
+- `participation-service`: `/users/*/requests/**`, `/users/*/events/*/requests/**`, `/admin/events/*/requests/**`, `/internal/requests/**`;
+- `user-admin-service`: `/admin/users/**`;
+- `extra-service`: `/events/*/comments/**`, `/users/*/comments/**`, `/admin/comments/**`, `/events/*/rating`, `/users/*/events/*/rating`, `/users/*/ratings`, `/users/*/subscriptions/**`, `/admin/compilations/**`, `/compilations/**`;
+- `stats-service`: `/hit`, `/stats`.
+
+### Внутренний API для Feign
+
+Внутренние контракты используются сервисами через Eureka service-id и OpenFeign:
+
+- `event-service` -> `participation-service`
+  - `GET /internal/requests/events/{eventId}/count` — количество подтверждённых заявок события.
+- `participation-service` -> `event-service`
+  - `GET /internal/events/{eventId}/exists` — проверка существования события.
+
+### Конфигурации
+
+- Config Server: `infra/config-server/src/main/resources/application.yml`.
+- Gateway routes: `infra/config-server/src/main/resources/configurations/gateway-server.yml`.
+- Конфигурации сервисов:
+  - `infra/config-server/src/main/resources/configurations/event-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/participation-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/user-admin-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/extra-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/main-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/stats-service.yml`.
+
+### Проверка
+
+```bash
+mvn install -P check
+docker compose up --detach --build --force-recreate
+npx newman run postman/ewm-main-service.json
+npx newman run postman/ewm-stat-service.json
+npx newman run postman/feature.json
+```
+
+---
+
 ## 🏗️ Архитектура проекта
 
 ```
 explore-with-me/
-├── main-service/           # Основной сервис
-│   ├── event/              # Модуль событий
-│   │   ├── controller/     # Public/Private/Admin контроллеры
-│   │   ├── service/        # Бизнес-логика событий
-│   │   ├── repository/     # JPA репозитории
-│   │   ├── dto/            # DTO событий
-│   │   ├── model/          # JPA-сущности (Event, Location)
-│   │   └── mapper/         # MapStruct мапперы
-│   ├── user/               # Модуль пользователей
-│   ├── category/           # Модуль категорий
-│   ├── config/             # Конфигурация (StatsClient)
-│   └── exception/          # Глобальная обработка ошибок
-├── stats-service/          # Сервис статистики
-│   ├── stats-dto/          # Общие DTO
-│   ├── stats-client/       # HTTP-клиент
-│   └── stats-server/       # REST API статистики
-└── pom.xml                 # Родительский POM
+├── core/
+│   ├── main-domain/         # Общий доменный модуль
+│   ├── event-service/       # Сервис мероприятий
+│   ├── request-service/     # Сервис заявок, регистрируется как participation-service
+│   ├── user-admin-service/  # Сервис администрирования пользователей
+│   ├── extra-service/       # Сервис дополнительного функционала
+│   └── main-service/        # Переходный boot-модуль
+├── infra/
+│   ├── gateway-server/      # API Gateway
+│   ├── discovery-server/    # Eureka
+│   └── config-server/       # Config Server
+├── stats-service/           # Сервис статистики
+├── docker-compose.yml
+└── pom.xml                  # Родительский POM
 ```
 
 ---
