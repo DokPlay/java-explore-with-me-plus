@@ -71,7 +71,75 @@ Full-featured events management module — the core functionality of the applica
 - PostgreSQL 16
 - MapStruct
 - Bean Validation
-- 106 unit tests
+- 201 unit tests
+
+---
+
+## ✅ Stage 2: Splitting the Main Service into Microservices
+
+### Extracted Services
+
+- `event-service` — event, category, location and event moderation management.
+- `participation-service` — participation request management. The Maven module is located at `core/request-service`.
+- `user-admin-service` — administrative user management.
+- `extra-service` — additional functionality: comments, compilations, ratings and subscriptions.
+- `main-domain` — shared domain module with DTOs, entities, repositories, mappers and business services moved out of `main-service`.
+- `main-service` — transitional boot module; application startup and schema initialization remain here, while domain implementation has been moved out.
+
+### Infrastructure
+
+- `discovery-server` — Eureka service discovery.
+- `config-server` — Spring Cloud Config Server in native mode, reading configurations from `classpath:/configurations`.
+- `gateway-server` — single API entry point on port `8080`.
+- `stats-service` — statistics service available through Gateway and directly on Docker port `9090`.
+
+### External API
+
+All main API client requests go through Gateway: `http://localhost:8080`.
+
+Public specifications:
+
+- main service: `ewm-main-service-spec.json`;
+- statistics service: `ewm-stats-service-spec.json`.
+
+Main Gateway routes:
+
+- `event-service`: `/events/**`, `/admin/events/**`, `/users/*/events/**`, `/categories/**`, `/admin/categories/**`, `/locations/**`, `/admin/locations/**`, `/internal/events/**`;
+- `participation-service`: `/users/*/requests/**`, `/users/*/events/*/requests/**`, `/admin/events/*/requests/**`, `/internal/requests/**`;
+- `user-admin-service`: `/admin/users/**`;
+- `extra-service`: `/events/*/comments/**`, `/users/*/comments/**`, `/admin/comments/**`, `/events/*/rating`, `/users/*/events/*/rating`, `/users/*/ratings`, `/users/*/subscriptions/**`, `/admin/compilations/**`, `/compilations/**`;
+- `stats-service`: `/hit`, `/stats`.
+
+### Internal Feign API
+
+Internal contracts use Eureka service ids and OpenFeign:
+
+- `event-service` -> `participation-service`
+  - `GET /internal/requests/events/{eventId}/count` — confirmed request count for an event.
+- `participation-service` -> `event-service`
+  - `GET /internal/events/{eventId}/exists` — event existence check.
+
+### Configuration
+
+- Config Server: `infra/config-server/src/main/resources/application.yml`.
+- Gateway routes: `infra/config-server/src/main/resources/configurations/gateway-server.yml`.
+- Service configurations:
+  - `infra/config-server/src/main/resources/configurations/event-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/participation-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/user-admin-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/extra-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/main-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/stats-service.yml`.
+
+### Verification
+
+```bash
+mvn install -P check
+docker compose up --detach --build --force-recreate
+npx newman run postman/ewm-main-service.json
+npx newman run postman/ewm-stat-service.json
+npx newman run postman/feature.json
+```
 
 ---
 
@@ -79,23 +147,20 @@ Full-featured events management module — the core functionality of the applica
 
 ```
 explore-with-me/
-├── main-service/           # Main Service
-│   ├── event/              # Events module
-│   │   ├── controller/     # Public/Private/Admin controllers
-│   │   ├── service/        # Event business logic
-│   │   ├── repository/     # JPA repositories
-│   │   ├── dto/            # Event DTOs
-│   │   ├── model/          # JPA entities (Event, Location)
-│   │   └── mapper/         # MapStruct mappers
-│   ├── user/               # Users module
-│   ├── category/           # Categories module
-│   ├── config/             # Configuration (StatsClient)
-│   └── exception/          # Global error handling
-├── stats-service/          # Statistics Service
-│   ├── stats-dto/          # Common DTOs
-│   ├── stats-client/       # HTTP client
-│   └── stats-server/       # Stats REST API
-└── pom.xml                 # Parent POM
+├── core/
+│   ├── main-domain/         # Shared domain module
+│   ├── event-service/       # Event service
+│   ├── request-service/     # Request service, registered as participation-service
+│   ├── user-admin-service/  # User administration service
+│   ├── extra-service/       # Additional functionality service
+│   └── main-service/        # Transitional boot module
+├── infra/
+│   ├── gateway-server/      # API Gateway
+│   ├── discovery-server/    # Eureka
+│   └── config-server/       # Config Server
+├── stats-service/           # Statistics service
+├── docker-compose.yml
+└── pom.xml                  # Parent POM
 ```
 
 ---

@@ -11,14 +11,36 @@ spring:
               enabled: true
               lower-case-service-id: true
           routes:
-            - id: main-service-api
-              uri: lb://main-service
+            - id: participation-service-api
+              uri: lb://participation-service
+              order: -40
               predicates:
-                - Path=/admin/**,/users/**,/events/**,/categories/**,/compilations/**,/locations/**
+                - Path=/admin/events/*/requests,/admin/events/*/requests/**,/users/*/events/*/requests,/users/*/events/*/requests/**,/users/*/requests,/users/*/requests/**,/internal/requests/**
+            - id: extra-service-api
+              uri: lb://extra-service
+              order: -30
+              predicates:
+                - Path=/events/*/comments,/events/*/comments/**,/users/*/events/*/comments,/users/*/events/*/comments/**,/users/*/comments,/users/*/comments/**,/admin/comments,/admin/comments/**,/events/*/rating,/users/*/events/*/rating,/users/*/ratings,/users/*/subscriptions,/users/*/subscriptions/**,/admin/compilations,/admin/compilations/**,/compilations,/compilations/**,/comments/events/**,/ratings/events/**
+            - id: event-service-api
+              uri: lb://event-service
+              order: -20
+              predicates:
+                - Path=/events,/events/**,/admin/events,/admin/events/**,/users/*/events,/users/*/events/**,/categories,/categories/**,/admin/categories,/admin/categories/**,/locations,/locations/**,/admin/locations,/admin/locations/**,/internal/events/**
             - id: stats-service-api
               uri: lb://stats-service
+              order: 0
               predicates:
                 - Path=/hit,/stats
+            - id: user-admin-service-api
+              uri: lb://user-admin-service
+              order: -10
+              predicates:
+                - Path=/admin/users/**
+            - id: main-service-fallback
+              uri: lb://main-service
+              order: 30
+              predicates:
+                - Path=/**
 
 management:
   endpoint:
