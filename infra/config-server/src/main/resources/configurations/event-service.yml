@@ -20,7 +20,7 @@ spring:
       mode: never
       schema-locations: classpath:schema.sql
 
-stats-server:
+stats-service:
   service-id: stats-service
 
 comments:

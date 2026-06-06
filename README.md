@@ -80,7 +80,7 @@ HTTP-клиент для взаимодействия с сервисом ста
 ### Выделенные сервисы
 
 - `event-service` — управление мероприятиями, категориями, локациями и модерацией событий.
-- `participation-service` — управление заявками на участие. Maven-модуль расположен в `core/request-service`.
+- `request-service` — управление заявками на участие.
 - `user-admin-service` — административное управление пользователями.
 - `extra-service` — дополнительная функциональность: комментарии, подборки, рейтинги, подписки.
 - `main-domain` — общий доменный модуль с DTO, сущностями, репозиториями, мапперами и бизнес-сервисами, вынесенными из `main-service`.
@@ -92,6 +92,12 @@ HTTP-клиент для взаимодействия с сервисом ста
 - `config-server` — Spring Cloud Config Server, работает в `native`-режиме и читает конфигурации из `classpath:/configurations`.
 - `gateway-server` — единая входная точка API на порту `8080`.
 - `stats-service` — сервис статистики, доступен через Gateway и напрямую на опубликованном Docker-порту `9090`.
+
+### Правило нейминга
+
+- бизнес-сервисы называются по схеме `<domain>-service`: `main-service`, `event-service`, `request-service`, `user-admin-service`, `extra-service`, `stats-service`;
+- инфраструктурные сервисы называются по схеме `<role>-server`: `discovery-server`, `config-server`, `gateway-server`;
+- один и тот же service-id используется в `spring.application.name`, файле Config Server, Gateway route, Eureka и имени сервиса/контейнера в Docker Compose.
 
 ### Внешний API
 
@@ -105,7 +111,7 @@ HTTP-клиент для взаимодействия с сервисом ста
 Основные маршруты Gateway:
 
 - `event-service`: `/events/**`, `/admin/events/**`, `/users/*/events/**`, `/categories/**`, `/admin/categories/**`, `/locations/**`, `/admin/locations/**`, `/internal/events/**`;
-- `participation-service`: `/users/*/requests/**`, `/users/*/events/*/requests/**`, `/admin/events/*/requests/**`, `/internal/requests/**`;
+- `request-service`: `/users/*/requests/**`, `/users/*/events/*/requests/**`, `/admin/events/*/requests/**`, `/internal/requests/**`;
 - `user-admin-service`: `/admin/users/**`;
 - `extra-service`: `/events/*/comments/**`, `/users/*/comments/**`, `/admin/comments/**`, `/events/*/rating`, `/users/*/events/*/rating`, `/users/*/ratings`, `/users/*/subscriptions/**`, `/admin/compilations/**`, `/compilations/**`;
 - `stats-service`: `/hit`, `/stats`.
@@ -114,9 +120,9 @@ HTTP-клиент для взаимодействия с сервисом ста
 
 Внутренние контракты используются сервисами через Eureka service-id и OpenFeign:
 
-- `event-service` -> `participation-service`
+- `event-service` -> `request-service`
   - `GET /internal/requests/events/{eventId}/count` — количество подтверждённых заявок события.
-- `participation-service` -> `event-service`
+- `request-service` -> `event-service`
   - `GET /internal/events/{eventId}/exists` — проверка существования события.
 
 ### Конфигурации
@@ -125,7 +131,7 @@ HTTP-клиент для взаимодействия с сервисом ста
 - Gateway routes: `infra/config-server/src/main/resources/configurations/gateway-server.yml`.
 - Конфигурации сервисов:
   - `infra/config-server/src/main/resources/configurations/event-service.yml`;
-  - `infra/config-server/src/main/resources/configurations/participation-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/request-service.yml`;
   - `infra/config-server/src/main/resources/configurations/user-admin-service.yml`;
   - `infra/config-server/src/main/resources/configurations/extra-service.yml`;
   - `infra/config-server/src/main/resources/configurations/main-service.yml`;
@@ -150,7 +156,7 @@ explore-with-me/
 ├── core/
 │   ├── main-domain/         # Общий доменный модуль
 │   ├── event-service/       # Сервис мероприятий
-│   ├── request-service/     # Сервис заявок, регистрируется как participation-service
+│   ├── request-service/     # Сервис заявок
 │   ├── user-admin-service/  # Сервис администрирования пользователей
 │   ├── extra-service/       # Сервис дополнительного функционала
 │   └── main-service/        # Переходный boot-модуль

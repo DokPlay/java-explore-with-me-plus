@@ -13,6 +13,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import ru.practicum.main.category.model.Category;
 import ru.practicum.main.user.model.User;
@@ -41,6 +43,8 @@ public class Event {
     /**
      * Short event description (annotation).
      */
+    @NotBlank
+    @Size(min = 20, max = 2000)
     @Column(nullable = false, length = 2000)
     private String annotation;
 
@@ -67,6 +71,8 @@ public class Event {
     /**
      * Full event description.
      */
+    @NotBlank
+    @Size(min = 20, max = 7000)
     @Column(length = 7000)
     private String description;
 
@@ -127,6 +133,8 @@ public class Event {
     /**
      * Event title.
      */
+    @NotBlank
+    @Size(min = 3, max = 120)
     @Column(nullable = false, length = 120)
     private String title;
 
