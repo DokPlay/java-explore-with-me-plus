@@ -11,8 +11,8 @@ spring:
               enabled: true
               lower-case-service-id: true
           routes:
-            - id: participation-service-api
-              uri: lb://participation-service
+            - id: request-service-api
+              uri: lb://request-service
               order: -40
               predicates:
                 - Path=/admin/events/*/requests,/admin/events/*/requests/**,/users/*/events/*/requests,/users/*/events/*/requests/**,/users/*/requests,/users/*/requests/**,/internal/requests/**

@@ -30,10 +30,10 @@ services:
       retries: 20
       start_period: 10s
 
-  stats-server:
+  stats-service:
     build: ./stats-service/stats-server
     image: ewm-stats-server
-    container_name: stats-server
+    container_name: stats-service
     depends_on:
       stats-db:
         condition: service_healthy
@@ -68,14 +68,14 @@ services:
       timeout: 5s
       retries: 10
 
-  ewm-service:
+  main-service:
     build: ./core/main-service
     image: ewm-main-service
-    container_name: ewm-main-service
+    container_name: main-service
     depends_on:
-      ewm-db:
+      main-db:
         condition: service_healthy
-      stats-server:
+      stats-service:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
@@ -83,7 +83,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
-      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_URL: jdbc:postgresql://main-db:5432/main_db
       MAIN_DB_USER: postgres
       MAIN_DB_PASSWORD: postgres
     healthcheck:
@@ -96,13 +96,13 @@ services:
   event-service:
     build: ./core/event-service
     image: ewm-event-service
-    container_name: ewm-event-service
+    container_name: event-service
     depends_on:
-      ewm-db:
+      main-db:
         condition: service_healthy
-      stats-server:
+      stats-service:
         condition: service_healthy
-      ewm-service:
+      main-service:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
@@ -110,7 +110,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
-      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_URL: jdbc:postgresql://main-db:5432/main_db
       MAIN_DB_USER: postgres
       MAIN_DB_PASSWORD: postgres
     healthcheck:
@@ -123,11 +123,11 @@ services:
   request-service:
     build: ./core/request-service
     image: ewm-request-service
-    container_name: ewm-request-service
+    container_name: request-service
     depends_on:
-      ewm-db:
+      main-db:
         condition: service_healthy
-      ewm-service:
+      main-service:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
@@ -135,7 +135,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
-      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_URL: jdbc:postgresql://main-db:5432/main_db
       MAIN_DB_USER: postgres
       MAIN_DB_PASSWORD: postgres
     healthcheck:
@@ -148,11 +148,11 @@ services:
   user-admin-service:
     build: ./core/user-admin-service
     image: ewm-user-admin-service
-    container_name: ewm-user-admin-service
+    container_name: user-admin-service
     depends_on:
-      ewm-db:
+      main-db:
         condition: service_healthy
-      ewm-service:
+      main-service:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
@@ -160,7 +160,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
-      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_URL: jdbc:postgresql://main-db:5432/main_db
       MAIN_DB_USER: postgres
       MAIN_DB_PASSWORD: postgres
     healthcheck:
@@ -173,13 +173,13 @@ services:
   extra-service:
     build: ./core/extra-service
     image: ewm-extra-service
-    container_name: ewm-extra-service
+    container_name: extra-service
     depends_on:
-      ewm-db:
+      main-db:
         condition: service_healthy
-      stats-server:
+      stats-service:
         condition: service_healthy
-      ewm-service:
+      main-service:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
@@ -187,7 +187,7 @@ services:
         condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
-      MAIN_DB_URL: jdbc:postgresql://ewm-db:5432/main_db
+      MAIN_DB_URL: jdbc:postgresql://main-db:5432/main_db
       MAIN_DB_USER: postgres
       MAIN_DB_PASSWORD: postgres
     healthcheck:
@@ -197,7 +197,7 @@ services:
       retries: 20
       start_period: 20s
 
-  ewm-db:
+  main-db:
     image: postgres:16
     container_name: main-db
     ports:
@@ -224,7 +224,7 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
-      ewm-service:
+      main-service:
         condition: service_healthy
       event-service:
         condition: service_healthy
@@ -234,7 +234,7 @@ services:
         condition: service_healthy
       extra-service:
         condition: service_healthy
-      stats-server:
+      stats-service:
         condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/

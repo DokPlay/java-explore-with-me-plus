@@ -80,7 +80,7 @@ Full-featured events management module — the core functionality of the applica
 ### Extracted Services
 
 - `event-service` — event, category, location and event moderation management.
-- `participation-service` — participation request management. The Maven module is located at `core/request-service`.
+- `request-service` — participation request management.
 - `user-admin-service` — administrative user management.
 - `extra-service` — additional functionality: comments, compilations, ratings and subscriptions.
 - `main-domain` — shared domain module with DTOs, entities, repositories, mappers and business services moved out of `main-service`.
@@ -92,6 +92,12 @@ Full-featured events management module — the core functionality of the applica
 - `config-server` — Spring Cloud Config Server in native mode, reading configurations from `classpath:/configurations`.
 - `gateway-server` — single API entry point on port `8080`.
 - `stats-service` — statistics service available through Gateway and directly on Docker port `9090`.
+
+### Naming Rule
+
+- business services use the `<domain>-service` pattern: `main-service`, `event-service`, `request-service`, `user-admin-service`, `extra-service`, `stats-service`;
+- infrastructure services use the `<role>-server` pattern: `discovery-server`, `config-server`, `gateway-server`;
+- the same service id is used by `spring.application.name`, Config Server file, Gateway route, Eureka and the Docker Compose service/container name.
 
 ### External API
 
@@ -105,7 +111,7 @@ Public specifications:
 Main Gateway routes:
 
 - `event-service`: `/events/**`, `/admin/events/**`, `/users/*/events/**`, `/categories/**`, `/admin/categories/**`, `/locations/**`, `/admin/locations/**`, `/internal/events/**`;
-- `participation-service`: `/users/*/requests/**`, `/users/*/events/*/requests/**`, `/admin/events/*/requests/**`, `/internal/requests/**`;
+- `request-service`: `/users/*/requests/**`, `/users/*/events/*/requests/**`, `/admin/events/*/requests/**`, `/internal/requests/**`;
 - `user-admin-service`: `/admin/users/**`;
 - `extra-service`: `/events/*/comments/**`, `/users/*/comments/**`, `/admin/comments/**`, `/events/*/rating`, `/users/*/events/*/rating`, `/users/*/ratings`, `/users/*/subscriptions/**`, `/admin/compilations/**`, `/compilations/**`;
 - `stats-service`: `/hit`, `/stats`.
@@ -114,9 +120,9 @@ Main Gateway routes:
 
 Internal contracts use Eureka service ids and OpenFeign:
 
-- `event-service` -> `participation-service`
+- `event-service` -> `request-service`
   - `GET /internal/requests/events/{eventId}/count` — confirmed request count for an event.
-- `participation-service` -> `event-service`
+- `request-service` -> `event-service`
   - `GET /internal/events/{eventId}/exists` — event existence check.
 
 ### Configuration
@@ -125,7 +131,7 @@ Internal contracts use Eureka service ids and OpenFeign:
 - Gateway routes: `infra/config-server/src/main/resources/configurations/gateway-server.yml`.
 - Service configurations:
   - `infra/config-server/src/main/resources/configurations/event-service.yml`;
-  - `infra/config-server/src/main/resources/configurations/participation-service.yml`;
+  - `infra/config-server/src/main/resources/configurations/request-service.yml`;
   - `infra/config-server/src/main/resources/configurations/user-admin-service.yml`;
   - `infra/config-server/src/main/resources/configurations/extra-service.yml`;
   - `infra/config-server/src/main/resources/configurations/main-service.yml`;
@@ -150,7 +156,7 @@ explore-with-me/
 ├── core/
 │   ├── main-domain/         # Shared domain module
 │   ├── event-service/       # Event service
-│   ├── request-service/     # Request service, registered as participation-service
+│   ├── request-service/     # Request service
 │   ├── user-admin-service/  # User administration service
 │   ├── extra-service/       # Additional functionality service
 │   └── main-service/        # Transitional boot module
