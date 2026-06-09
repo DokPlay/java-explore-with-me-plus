@@ -140,6 +140,13 @@ public class Event {
     private String title;
 
     /**
+     * Unique public views loaded from Stats Service.
+     */
+    @Column
+    @Builder.Default
+    private Long views = 0L;
+
+    /**
      * Recommendation rating loaded from Analyzer.
      */
     @Transient

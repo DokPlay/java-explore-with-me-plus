@@ -1,5 +1,6 @@
 package ru.practicum.main.event.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
@@ -50,10 +51,11 @@ public class PublicEventController {
             @RequestParam(defaultValue = "false") Boolean onlyAvailable,
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
-            @RequestParam(defaultValue = "10") @Positive int size) {
+            @RequestParam(defaultValue = "10") @Positive int size,
+            HttpServletRequest request) {
         log.info("GET /events - Публичный поиск событий: text={}, categories={}", text, categories);
         return eventService.searchPublicEvents(text, categories, paid, rangeStart, rangeEnd,
-                onlyAvailable, sort, from, size);
+                onlyAvailable, sort, from, size, request);
     }
 
     /**
@@ -75,9 +77,10 @@ public class PublicEventController {
     @ResponseStatus(HttpStatus.OK)
     public EventFullDto getEventById(
             @PathVariable Long id,
-            @RequestHeader("X-EWM-USER-ID") Long userId) {
+            @RequestHeader(value = "X-EWM-USER-ID", required = false) Long userId,
+            HttpServletRequest request) {
         log.info("GET /events/{} - Получение опубликованного события пользователем userId={}", id, userId);
-        return eventService.getPublishedEventById(id, userId);
+        return eventService.getPublishedEventById(id, userId, request);
     }
 
     /**

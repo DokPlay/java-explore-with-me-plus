@@ -1,5 +1,6 @@
 package ru.practicum.main.event.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -13,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import ru.practicum.client.StatsClient;
 import ru.practicum.client.recommendation.RecommendationsClient;
 import ru.practicum.client.recommendation.UserActionClient;
 import ru.practicum.main.category.model.Category;
@@ -66,6 +68,9 @@ class EventServiceImplTest {
 
     @Mock
     private EventMapper eventMapper;
+
+    @Mock
+    private StatsClient statsClient;
 
     @Mock
     private RecommendationsClient recommendationsClient;
@@ -126,7 +131,9 @@ class EventServiceImplTest {
         testEvent.setParticipantLimit(100);
         testEvent.setRequestModeration(true);
         testEvent.setConfirmedRequests(0L);
+        testEvent.setViews(0L);
         testEvent.setRating(0.0d);
+        lenient().when(statsClient.getStats(any())).thenReturn(List.of());
         lenient().when(recommendationsClient.getInteractionsCount(any())).thenReturn(Map.of());
 
         testEventFullDto = EventFullDto.builder()
@@ -616,11 +623,26 @@ class EventServiceImplTest {
             // Action
             when(userRepository.existsById(1L)).thenReturn(true);
 
-            EventFullDto result = eventService.getPublishedEventById(1L, 1L);
+            EventFullDto result = eventService.getPublishedEventById(1L, 1L, null);
 
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("Должен вернуть опубликованное событие без пользовательского заголовка")
+        void getPublishedEventById_WithoutUserHeader_DoesNotRequireUser() {
+            testEvent.setState(EventState.PUBLISHED);
+            when(eventRepository.findByIdAndState(1L, EventState.PUBLISHED))
+                    .thenReturn(Optional.of(testEvent));
+            when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
+
+            EventFullDto result = eventService.getPublishedEventById(1L, null, mock(HttpServletRequest.class));
+
+            assertThat(result).isNotNull();
+            verify(userRepository, never()).existsById(anyLong());
+            verify(userActionClient, never()).collectView(anyLong(), anyLong());
         }
 
         @Test
@@ -629,10 +651,9 @@ class EventServiceImplTest {
             // Setup
             when(eventRepository.findByIdAndState(1L, EventState.PUBLISHED))
                     .thenReturn(Optional.empty());
-            when(userRepository.existsById(1L)).thenReturn(true);
 
             // Action and assert
-            assertThatThrownBy(() -> eventService.getPublishedEventById(1L, 1L))
+            assertThatThrownBy(() -> eventService.getPublishedEventById(1L, 1L, null))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Событие не найдено");
         }
@@ -717,7 +738,7 @@ class EventServiceImplTest {
         @DisplayName("Должен выбросить ValidationException при некорректном size для searchPublicEvents")
         void searchPublicEvents_InvalidSize_ThrowsException(int size) {
             assertThatThrownBy(() -> eventService.searchPublicEvents(
-                    null, null, null, null, null, false, null, 0, size))
+                    null, null, null, null, null, false, null, 0, size, null))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("size must be");
         }
@@ -727,7 +748,7 @@ class EventServiceImplTest {
         @DisplayName("Должен выбросить ValidationException при некорректном from для searchPublicEvents")
         void searchPublicEvents_InvalidFrom_ThrowsException(int from) {
             assertThatThrownBy(() -> eventService.searchPublicEvents(
-                    null, null, null, null, null, false, null, from, 10))
+                    null, null, null, null, null, false, null, from, 10, null))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("from must be");
         }

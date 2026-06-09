@@ -66,4 +66,9 @@ public class EventShortDto {
      * Recommendation rating.
      */
     private Double rating;
+
+    /**
+     * Number of unique public views.
+     */
+    private Long views;
 }

@@ -67,7 +67,7 @@ services:
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic stats.user-actions.v1 --partitions 3 --replication-factor 1
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic stats.events-similarity.v1 --partitions 3 --replication-factor 1
 
-  stats-service:
+  stats-server:
     build: ./stats-service/stats-server
     image: ewm-stats-server
     container_name: stats-service
@@ -188,14 +188,14 @@ services:
       retries: 20
       start_period: 20s
 
-  main-service:
+  ewm-service:
     build: ./core/main-service
     image: ewm-main-service
     container_name: main-service
     depends_on:
       main-db:
         condition: service_healthy
-      stats-service:
+      stats-server:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
@@ -224,9 +224,9 @@ services:
     depends_on:
       main-db:
         condition: service_healthy
-      stats-service:
+      stats-server:
         condition: service_healthy
-      main-service:
+      ewm-service:
         condition: service_healthy
       collector:
         condition: service_healthy
@@ -255,7 +255,7 @@ services:
     depends_on:
       main-db:
         condition: service_healthy
-      main-service:
+      ewm-service:
         condition: service_healthy
       collector:
         condition: service_healthy
@@ -282,7 +282,7 @@ services:
     depends_on:
       main-db:
         condition: service_healthy
-      main-service:
+      ewm-service:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
@@ -307,9 +307,9 @@ services:
     depends_on:
       main-db:
         condition: service_healthy
-      stats-service:
+      stats-server:
         condition: service_healthy
-      main-service:
+      ewm-service:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
@@ -354,7 +354,7 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
-      main-service:
+      ewm-service:
         condition: service_healthy
       event-service:
         condition: service_healthy
@@ -364,7 +364,7 @@ services:
         condition: service_healthy
       extra-service:
         condition: service_healthy
-      stats-service:
+      stats-server:
         condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/

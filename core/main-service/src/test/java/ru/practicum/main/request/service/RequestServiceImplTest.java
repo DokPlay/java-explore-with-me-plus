@@ -6,7 +6,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.client.recommendation.UserActionClient;
 import ru.practicum.main.event.model.Event;
+import ru.practicum.main.event.model.EventState;
 import ru.practicum.main.event.repository.EventRepository;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.exception.ValidationException;
@@ -46,6 +48,9 @@ class RequestServiceImplTest {
 
     @Mock
     private RequestMapper requestMapper;
+
+    @Mock
+    private UserActionClient userActionClient;
 
     @InjectMocks
     private RequestServiceImpl requestService;
@@ -171,5 +176,61 @@ class RequestServiceImplTest {
         assertThatThrownBy(() -> requestService.updateRequestStatus(1L, 1L, updateRequest))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Заявки не найдены");
+    }
+
+    @Test
+    @DisplayName("Pending-заявка не должна отправлять REGISTER в Collector")
+    void createRequest_Pending_DoesNotCollectRegister() {
+        User requester = new User();
+        requester.setId(2L);
+        User initiator = new User();
+        initiator.setId(1L);
+        Event event = new Event();
+        event.setId(10L);
+        event.setInitiator(initiator);
+        event.setState(EventState.PUBLISHED);
+        event.setParticipantLimit(10);
+        event.setConfirmedRequests(0L);
+        event.setRequestModeration(true);
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(requester));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(requestRepository.existsByEventIdAndRequesterId(10L, 2L)).thenReturn(false);
+        when(requestRepository.save(any(ParticipationRequest.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(requestMapper.toDto(any(ParticipationRequest.class)))
+                .thenReturn(ParticipationRequestDto.builder().status(RequestStatus.PENDING).build());
+
+        requestService.createRequest(2L, 10L);
+
+        verify(userActionClient, never()).collectRegister(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Сразу подтвержденная заявка должна отправлять REGISTER в Collector")
+    void createRequest_ImmediatelyConfirmed_CollectsRegister() {
+        User requester = new User();
+        requester.setId(2L);
+        User initiator = new User();
+        initiator.setId(1L);
+        Event event = new Event();
+        event.setId(10L);
+        event.setInitiator(initiator);
+        event.setState(EventState.PUBLISHED);
+        event.setParticipantLimit(10);
+        event.setConfirmedRequests(0L);
+        event.setRequestModeration(false);
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(requester));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(requestRepository.existsByEventIdAndRequesterId(10L, 2L)).thenReturn(false);
+        when(requestRepository.save(any(ParticipationRequest.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(requestMapper.toDto(any(ParticipationRequest.class)))
+                .thenReturn(ParticipationRequestDto.builder().status(RequestStatus.CONFIRMED).build());
+
+        requestService.createRequest(2L, 10L);
+
+        verify(userActionClient).collectRegister(2L, 10L);
     }
 }

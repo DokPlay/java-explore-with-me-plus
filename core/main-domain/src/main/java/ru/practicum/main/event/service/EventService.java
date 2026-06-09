@@ -1,5 +1,6 @@
 package ru.practicum.main.event.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import ru.practicum.main.event.dto.EventFullDto;
 import ru.practicum.main.event.dto.EventShortDto;
 import ru.practicum.main.event.dto.NewEventDto;
@@ -156,20 +157,22 @@ public interface EventService {
             Boolean onlyAvailable,
             String sort,
             int from,
-            int size);
+            int size,
+            HttpServletRequest request);
 
         /**
          * Gets a published event by ID.
          * <p>
-         * Records a view action for the user and returns
-         * the current recommendation rating from Analyzer.
+         * Records public view statistics and, when a user header is present,
+         * sends the view action to Collector for recommendations.
          *
          * @param eventId event ID
-         * @param userId  user ID from X-EWM-USER-ID
+         * @param userId  optional user ID from X-EWM-USER-ID
+         * @param request HTTP request for public view statistics
          * @return full event DTO
          * @throws ru.practicum.main.exception.NotFoundException if the event is not found or not published
          */
-    EventFullDto getPublishedEventById(Long eventId, Long userId);
+    EventFullDto getPublishedEventById(Long eventId, Long userId, HttpServletRequest request);
 
     /**
      * Returns personalized recommendations for a user.

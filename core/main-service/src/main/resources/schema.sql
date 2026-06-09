@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS events (
     request_moderation BOOLEAN DEFAULT TRUE,
     state VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     title VARCHAR(120) NOT NULL,
+    views BIGINT DEFAULT 0,
     rating DOUBLE PRECISION DEFAULT 0,
     version BIGINT NOT NULL DEFAULT 0,
     moderation_note VARCHAR(1000),
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS events (
 -- Совместимость со старыми БД: добавляем колонку модерации, если она отсутствует
 ALTER TABLE events ADD COLUMN IF NOT EXISTS moderation_note VARCHAR(1000);
 ALTER TABLE events ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS views BIGINT DEFAULT 0;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS rating DOUBLE PRECISION DEFAULT 0;
 
 -- Таблица заявок на участие
