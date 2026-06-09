@@ -1,6 +1,5 @@
 package ru.practicum.main.location.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
@@ -65,9 +64,8 @@ public class PublicLocationController {
             @RequestParam(required = false) @Positive Double radiusKm,
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
-            @RequestParam(defaultValue = "10") @Positive int size,
-            HttpServletRequest request) {
+            @RequestParam(defaultValue = "10") @Positive int size) {
         log.info("GET /locations/{}/events - Поиск событий в радиусе {} км", locationId, radiusKm);
-        return eventService.searchPublicEventsByLocation(locationId, radiusKm, sort, from, size, request);
+        return eventService.searchPublicEventsByLocation(locationId, radiusKm, sort, from, size);
     }
 }

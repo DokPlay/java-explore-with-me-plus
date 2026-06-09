@@ -20,6 +20,9 @@ public interface RequestRepository extends JpaRepository<ParticipationRequest, L
     // Проверить существование заявки пользователя на событие
     boolean existsByEventIdAndRequesterId(Long eventId, Long requesterId);
 
+    // Проверить существование заявки пользователя на событие в конкретном статусе
+    boolean existsByEventIdAndRequesterIdAndStatus(Long eventId, Long requesterId, RequestStatus status);
+
     // Найти заявки по списку ID
     List<ParticipationRequest> findAllByIdIn(List<Long> ids);
 

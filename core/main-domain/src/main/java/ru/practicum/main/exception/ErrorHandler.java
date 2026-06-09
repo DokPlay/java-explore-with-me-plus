@@ -7,6 +7,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
  * <ul>
  *     <li>{@link ValidationException} — 400</li>
  *     <li>{@link MethodArgumentNotValidException} — 400</li>
+ *     <li>{@link MissingRequestHeaderException} — 400</li>
  *     <li>{@link MissingServletRequestParameterException} — 400</li>
  *     <li>{@link NotFoundException} — 404</li>
  *     <li>{@link ConflictException} — 409</li>
@@ -101,6 +103,26 @@ public class ErrorHandler {
         return buildApiError(
                 "CONSTRAINT_VIOLATION",
                 "Нарушение ограничений валидации",
+                errorDetails,
+                HttpStatus.BAD_REQUEST,
+                getExceptionDetails(e)
+        );
+    }
+
+    /**
+     * Handles missing required request header.
+     */
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleMissingRequestHeaderException(MissingRequestHeaderException e) {
+        String errorDetails = String.format("Не указан обязательный заголовок '%s'",
+                e.getHeaderName());
+
+        log.warn("MissingRequestHeaderException: {}", errorDetails, e);
+
+        return buildApiError(
+                "MISSING_HEADER",
+                "Отсутствует обязательный заголовок запроса",
                 errorDetails,
                 HttpStatus.BAD_REQUEST,
                 getExceptionDetails(e)

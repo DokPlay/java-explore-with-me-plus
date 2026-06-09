@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.client.recommendation.UserActionClient;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.event.model.EventState;
 import ru.practicum.main.event.repository.EventRepository;
@@ -40,6 +41,7 @@ public class RequestServiceImpl implements RequestService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final RequestMapper requestMapper;
+    private final UserActionClient userActionClient;
 
     // ========== Методы пользователя ==========
 
@@ -117,6 +119,7 @@ public class RequestServiceImpl implements RequestService {
         }
 
         ParticipationRequest savedRequest = requestRepository.save(request);
+        userActionClient.collectRegister(userId, eventId);
         log.info("Создана заявка: id={}", savedRequest.getId());
 
         return requestMapper.toDto(savedRequest);

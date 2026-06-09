@@ -41,7 +41,7 @@ class EventFullDtoTest {
                 .participantLimit(100)
                 .requestModeration(true)
                 .confirmedRequests(25L)
-                .views(1000L)
+                .rating(1000.0d)
                 .state(EventState.PUBLISHED)
                 .build();
 
@@ -50,7 +50,7 @@ class EventFullDtoTest {
         assertThat(dto.getTitle()).isEqualTo("Test Event");
         assertThat(dto.getState()).isEqualTo(EventState.PUBLISHED);
         assertThat(dto.getConfirmedRequests()).isEqualTo(25L);
-        assertThat(dto.getViews()).isEqualTo(1000L);
+        assertThat(dto.getRating()).isEqualTo(1000.0d);
     }
 
     @Test
@@ -75,14 +75,14 @@ class EventFullDtoTest {
         dto.setId(1L);
         dto.setTitle("Setter Event");
         dto.setState(EventState.PENDING);
-        dto.setViews(500L);
+        dto.setRating(500.0d);
         dto.setConfirmedRequests(10L);
 
         // Assert
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getTitle()).isEqualTo("Setter Event");
         assertThat(dto.getState()).isEqualTo(EventState.PENDING);
-        assertThat(dto.getViews()).isEqualTo(500L);
+        assertThat(dto.getRating()).isEqualTo(500.0d);
         assertThat(dto.getConfirmedRequests()).isEqualTo(10L);
     }
 }

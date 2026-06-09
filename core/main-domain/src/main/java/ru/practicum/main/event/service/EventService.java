@@ -8,7 +8,6 @@ import ru.practicum.main.event.dto.UpdateEventUserRequest;
 import ru.practicum.main.event.model.EventState;
 import ru.practicum.main.moderation.dto.EventModerationLogDto;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -135,7 +134,7 @@ public interface EventService {
          * Public search for events.
          * <p>
          * Returns only published events ({@link EventState#PUBLISHED}).
-         * Automatically records view statistics.
+         * Does not record user actions.
          *
          * @param text          search text in title and description (optional)
          * @param categories    list of category IDs (optional)
@@ -146,7 +145,6 @@ public interface EventService {
          * @param sort          sorting: EVENT_DATE, VIEWS or RATING
          * @param from          start index for pagination
          * @param size          number of items per page
-         * @param request       HTTP request to obtain client IP
          * @return list of short event DTOs
          */
     List<EventShortDto> searchPublicEvents(
@@ -158,21 +156,37 @@ public interface EventService {
             Boolean onlyAvailable,
             String sort,
             int from,
-            int size,
-            HttpServletRequest request);
+            int size);
 
         /**
          * Gets a published event by ID.
          * <p>
-         * Automatically records a view hit and returns
-         * the current view count from Stats Service.
+         * Records a view action for the user and returns
+         * the current recommendation rating from Analyzer.
          *
          * @param eventId event ID
-         * @param request HTTP request to obtain client IP
+         * @param userId  user ID from X-EWM-USER-ID
          * @return full event DTO
          * @throws ru.practicum.main.exception.NotFoundException if the event is not found or not published
          */
-    EventFullDto getPublishedEventById(Long eventId, HttpServletRequest request);
+    EventFullDto getPublishedEventById(Long eventId, Long userId);
+
+    /**
+     * Returns personalized recommendations for a user.
+     *
+     * @param userId     user ID from X-EWM-USER-ID
+     * @param maxResults max result size
+     * @return list of recommended events
+     */
+    List<EventShortDto> getRecommendations(Long userId, int maxResults);
+
+    /**
+     * Sends a like action for a visited event.
+     *
+     * @param userId  user ID from X-EWM-USER-ID
+     * @param eventId event ID
+     */
+    void likeEvent(Long userId, Long eventId);
 
         /**
          * Gets an event by ID (for internal use).
@@ -206,13 +220,11 @@ public interface EventService {
      * @param sort       sorting: EVENT_DATE, VIEWS, RATING
      * @param from       start index for pagination
      * @param size       number of items per page
-     * @param request    HTTP request for stats hit collection
      * @return list of nearby published events
      */
     List<EventShortDto> searchPublicEventsByLocation(Long locationId,
                                                       Double radiusKm,
                                                       String sort,
                                                       int from,
-                                                      int size,
-                                                      HttpServletRequest request);
+                                                      int size);
 }

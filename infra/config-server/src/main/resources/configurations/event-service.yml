@@ -23,6 +23,19 @@ spring:
 stats-service:
   service-id: stats-service
 
+grpc:
+  client:
+    collector:
+      address: discovery:///collector
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
+    analyzer:
+      address: discovery:///analyzer
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
+
 comments:
   max-per-user-per-event: 5
 
