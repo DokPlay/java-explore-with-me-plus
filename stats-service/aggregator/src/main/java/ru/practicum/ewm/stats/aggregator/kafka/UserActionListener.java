@@ -18,7 +18,7 @@ public class UserActionListener {
     private final EventSimilarityProducer producer;
 
     @KafkaListener(
-            topics = "${ewm.kafka.topics.user-actions:stats.user-actions.v1}",
+            topics = "#{@kafkaTopicProperties.userActions}",
             groupId = "${spring.kafka.consumer.group-id:aggregator}"
     )
     public void onUserAction(byte[] payload) {

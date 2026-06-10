@@ -1,7 +1,6 @@
 package ru.practicum.ewm.stats.analyzer.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.stats.analyzer.model.EventSimilarity;
@@ -15,7 +14,7 @@ import ru.practicum.ewm.stats.avro.UserActionAvro;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +25,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class RecommendationService {
+
+    private static final long NON_EXISTING_EVENT_ID = -1L;
 
     private final UserInteractionRepository userInteractionRepository;
     private final EventSimilarityRepository eventSimilarityRepository;
@@ -74,16 +75,12 @@ public class RecommendationService {
             return List.of();
         }
 
-        Set<Long> interactedEventIds = userInteractionRepository.findAllByUserId(userId).stream()
-                .map(UserInteraction::getEventId)
-                .collect(Collectors.toSet());
+        Set<Long> interactedEventIds = new HashSet<>(userInteractionRepository.findEventIdsByUserId(userId));
 
-        return eventSimilarityRepository.findAllByEventAOrEventB(eventId, eventId).stream()
-                .map(similarity -> new RecommendedEvent(similarity.otherEvent(eventId), similarity.getScore()))
-                .filter(recommended -> !interactedEventIds.contains(recommended.eventId()))
-                .sorted(Comparator.comparing(RecommendedEvent::score).reversed()
-                        .thenComparing(RecommendedEvent::eventId))
-                .limit(limit)
+        return eventSimilarityRepository
+                .findSimilarUnseenEvents(eventId, idsForNotIn(interactedEventIds), limit)
+                .stream()
+                .map(projection -> new RecommendedEvent(projection.getEventId(), projection.getScore()))
                 .toList();
     }
 
@@ -93,9 +90,11 @@ public class RecommendationService {
             return List.of();
         }
 
-        List<UserInteraction> recentInteractions = userInteractionRepository
-                .findAllByUserIdOrderByLastTimestampDesc(userId, PageRequest.of(0, limit));
-        if (recentInteractions.isEmpty()) {
+        List<Long> recentEventIds = userInteractionRepository.findEventIdsByUserIdOrderByLastTimestampDesc(
+                userId,
+                org.springframework.data.domain.PageRequest.of(0, limit)
+        );
+        if (recentEventIds.isEmpty()) {
             return List.of();
         }
 
@@ -103,13 +102,25 @@ public class RecommendationService {
         Map<Long, UserInteraction> interactionsByEvent = allInteractions.stream()
                 .collect(Collectors.toMap(UserInteraction::getEventId, Function.identity()));
         Set<Long> interactedEventIds = interactionsByEvent.keySet();
-        Set<Long> recentEventIds = recentInteractions.stream()
-                .map(UserInteraction::getEventId)
-                .collect(Collectors.toSet());
+        Set<Long> recentEventIdSet = new HashSet<>(recentEventIds);
 
-        List<Long> candidates = findCandidateEvents(recentEventIds, interactedEventIds, limit);
+        List<Long> candidates = findCandidateEvents(recentEventIdSet, interactedEventIds, limit);
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> candidateIds = new HashSet<>(candidates);
+        Map<Long, List<EventSimilarity>> similaritiesByCandidate = eventSimilarityRepository
+                .findTopBetweenCandidatesAndEvents(candidateIds, interactedEventIds, limit)
+                .stream()
+                .collect(Collectors.groupingBy(similarity -> candidateEventId(similarity, candidateIds)));
+
         return candidates.stream()
-                .map(candidateId -> predictScore(candidateId, interactedEventIds, interactionsByEvent, limit))
+                .map(candidateId -> predictScore(
+                        candidateId,
+                        similaritiesByCandidate.getOrDefault(candidateId, List.of()),
+                        interactionsByEvent
+                ))
                 .filter(recommended -> recommended.score() > 0.0d)
                 .sorted(Comparator.comparing(RecommendedEvent::score).reversed()
                         .thenComparing(RecommendedEvent::eventId))
@@ -135,40 +146,15 @@ public class RecommendationService {
     }
 
     private List<Long> findCandidateEvents(Set<Long> recentEventIds, Set<Long> interactedEventIds, int limit) {
-        Map<Long, Double> bestSimilarityByCandidate = new LinkedHashMap<>();
-
-        for (EventSimilarity similarity : eventSimilarityRepository.findAllInvolvingAny(recentEventIds)) {
-            Long candidateId = null;
-            if (recentEventIds.contains(similarity.getEventA())) {
-                candidateId = similarity.getEventB();
-            } else if (recentEventIds.contains(similarity.getEventB())) {
-                candidateId = similarity.getEventA();
-            }
-
-            if (candidateId != null && !interactedEventIds.contains(candidateId)) {
-                bestSimilarityByCandidate.merge(candidateId, similarity.getScore(), Math::max);
-            }
-        }
-
-        return bestSimilarityByCandidate.entrySet().stream()
-                .sorted(Map.Entry.<Long, Double>comparingByValue().reversed()
-                        .thenComparing(Map.Entry::getKey))
-                .limit(limit)
-                .map(Map.Entry::getKey)
+        return eventSimilarityRepository.findCandidateEvents(recentEventIds, idsForNotIn(interactedEventIds), limit)
+                .stream()
+                .map(EventSimilarityRepository.EventScoreProjection::getEventId)
                 .toList();
     }
 
     private RecommendedEvent predictScore(long candidateId,
-                                          Set<Long> interactedEventIds,
-                                          Map<Long, UserInteraction> interactionsByEvent,
-                                          int nearestNeighborsLimit) {
-        List<EventSimilarity> nearestNeighbors = eventSimilarityRepository
-                .findAllBetweenCandidateAndEvents(candidateId, interactedEventIds)
-                .stream()
-                .sorted(Comparator.comparing(EventSimilarity::getScore).reversed())
-                .limit(nearestNeighborsLimit)
-                .toList();
-
+                                          List<EventSimilarity> nearestNeighbors,
+                                          Map<Long, UserInteraction> interactionsByEvent) {
         double weightedScoreSum = 0.0d;
         double similaritySum = 0.0d;
         for (EventSimilarity similarity : nearestNeighbors) {
@@ -182,6 +168,14 @@ public class RecommendationService {
 
         double predictedScore = similaritySum == 0.0d ? 0.0d : weightedScoreSum / similaritySum;
         return new RecommendedEvent(candidateId, predictedScore);
+    }
+
+    private long candidateEventId(EventSimilarity similarity, Set<Long> candidateIds) {
+        return candidateIds.contains(similarity.getEventA()) ? similarity.getEventA() : similarity.getEventB();
+    }
+
+    private Set<Long> idsForNotIn(Set<Long> ids) {
+        return ids.isEmpty() ? Set.of(NON_EXISTING_EVENT_ID) : ids;
     }
 
     private double toWeight(ActionTypeAvro actionType) {

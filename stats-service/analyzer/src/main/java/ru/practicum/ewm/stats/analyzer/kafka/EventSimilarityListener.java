@@ -14,7 +14,7 @@ public class EventSimilarityListener {
     private final RecommendationService recommendationService;
 
     @KafkaListener(
-            topics = "${ewm.kafka.topics.events-similarity:stats.events-similarity.v1}",
+            topics = "#{@kafkaTopicProperties.eventsSimilarity}",
             groupId = "${spring.kafka.consumer.events-similarity-group-id:analyzer-similarities}"
     )
     public void onEventSimilarity(byte[] payload) {

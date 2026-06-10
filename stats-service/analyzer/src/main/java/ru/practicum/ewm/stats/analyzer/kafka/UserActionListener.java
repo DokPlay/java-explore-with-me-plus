@@ -14,7 +14,7 @@ public class UserActionListener {
     private final RecommendationService recommendationService;
 
     @KafkaListener(
-            topics = "${ewm.kafka.topics.user-actions:stats.user-actions.v1}",
+            topics = "#{@kafkaTopicProperties.userActions}",
             groupId = "${spring.kafka.consumer.user-actions-group-id:analyzer-actions}"
     )
     public void onUserAction(byte[] payload) {

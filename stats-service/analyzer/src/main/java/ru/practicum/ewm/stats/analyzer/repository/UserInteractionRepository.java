@@ -15,6 +15,21 @@ public interface UserInteractionRepository extends JpaRepository<UserInteraction
 
     List<UserInteraction> findAllByUserId(Long userId);
 
+    @Query("""
+            SELECT interaction.eventId
+            FROM UserInteraction interaction
+            WHERE interaction.userId = :userId
+            """)
+    List<Long> findEventIdsByUserId(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT interaction.eventId
+            FROM UserInteraction interaction
+            WHERE interaction.userId = :userId
+            ORDER BY interaction.lastTimestamp DESC
+            """)
+    List<Long> findEventIdsByUserIdOrderByLastTimestampDesc(@Param("userId") Long userId, Pageable pageable);
+
     List<UserInteraction> findAllByUserIdOrderByLastTimestampDesc(Long userId, Pageable pageable);
 
     Optional<UserInteraction> findByUserIdAndEventId(Long userId, Long eventId);

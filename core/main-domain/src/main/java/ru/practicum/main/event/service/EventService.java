@@ -167,7 +167,7 @@ public interface EventService {
          * sends the view action to Collector for recommendations.
          *
          * @param eventId event ID
-         * @param userId  optional user ID from X-EWM-USER-ID
+         * @param userId  optional user ID from {@code X-EWM-USER-ID}
          * @param request HTTP request for public view statistics
          * @return full event DTO
          * @throws ru.practicum.main.exception.NotFoundException if the event is not found or not published
@@ -177,7 +177,7 @@ public interface EventService {
     /**
      * Returns personalized recommendations for a user.
      *
-     * @param userId     user ID from X-EWM-USER-ID
+     * @param userId     user ID from {@code X-EWM-USER-ID}
      * @param maxResults max result size
      * @return list of recommended events
      */
@@ -186,7 +186,7 @@ public interface EventService {
     /**
      * Sends a like action for a visited event.
      *
-     * @param userId  user ID from X-EWM-USER-ID
+     * @param userId  user ID from {@code X-EWM-USER-ID}
      * @param eventId event ID
      */
     void likeEvent(Long userId, Long eventId);

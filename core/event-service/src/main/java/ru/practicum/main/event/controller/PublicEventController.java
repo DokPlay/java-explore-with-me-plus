@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.practicum.main.common.EwmHeaders;
 import ru.practicum.main.event.dto.EventFullDto;
 import ru.practicum.main.event.dto.EventShortDto;
 import ru.practicum.main.event.service.EventService;
@@ -64,7 +65,7 @@ public class PublicEventController {
     @GetMapping("/recommendations")
     @ResponseStatus(HttpStatus.OK)
     public List<EventShortDto> getRecommendations(
-            @RequestHeader("X-EWM-USER-ID") Long userId,
+            @RequestHeader(EwmHeaders.USER_ID) Long userId,
             @RequestParam(defaultValue = "10") @Positive int maxResults) {
         log.info("GET /events/recommendations - Рекомендации для пользователя userId={}", userId);
         return eventService.getRecommendations(userId, maxResults);
@@ -77,7 +78,7 @@ public class PublicEventController {
     @ResponseStatus(HttpStatus.OK)
     public EventFullDto getEventById(
             @PathVariable Long id,
-            @RequestHeader(value = "X-EWM-USER-ID", required = false) Long userId,
+            @RequestHeader(value = EwmHeaders.USER_ID, required = false) Long userId,
             HttpServletRequest request) {
         log.info("GET /events/{} - Получение опубликованного события пользователем userId={}", id, userId);
         return eventService.getPublishedEventById(id, userId, request);
@@ -90,7 +91,7 @@ public class PublicEventController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void likeEvent(
             @PathVariable Long eventId,
-            @RequestHeader("X-EWM-USER-ID") Long userId) {
+            @RequestHeader(EwmHeaders.USER_ID) Long userId) {
         log.info("PUT /events/{}/like - Лайк пользователя userId={}", eventId, userId);
         eventService.likeEvent(userId, eventId);
     }
