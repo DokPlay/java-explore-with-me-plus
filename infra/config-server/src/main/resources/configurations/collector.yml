@@ -1,0 +1,33 @@
+server:
+  port: 0
+
+grpc:
+  server:
+    port: 0
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+
+ewm:
+  kafka:
+    topics:
+      user-actions: ${EWM_KAFKA_TOPICS_USER_ACTIONS:stats.user-actions.v1}
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    ru.practicum: INFO

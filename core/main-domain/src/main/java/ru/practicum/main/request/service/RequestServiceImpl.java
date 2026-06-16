@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.client.recommendation.UserActionClient;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.event.model.EventState;
 import ru.practicum.main.event.repository.EventRepository;
@@ -40,6 +41,7 @@ public class RequestServiceImpl implements RequestService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final RequestMapper requestMapper;
+    private final UserActionClient userActionClient;
 
     // ========== Методы пользователя ==========
 
@@ -117,6 +119,9 @@ public class RequestServiceImpl implements RequestService {
         }
 
         ParticipationRequest savedRequest = requestRepository.save(request);
+        if (savedRequest.getStatus() == RequestStatus.CONFIRMED) {
+            collectConfirmedRegistration(savedRequest);
+        }
         log.info("Создана заявка: id={}", savedRequest.getId());
 
         return requestMapper.toDto(savedRequest);
@@ -241,16 +246,19 @@ public class RequestServiceImpl implements RequestService {
         if (event.getParticipantLimit() == 0 || !event.getRequestModeration()) {
             // Все заявки автоматически подтверждаются
             long confirmedCount = event.getConfirmedRequests();
+            List<ParticipationRequest> newlyConfirmed = new ArrayList<>();
             for (ParticipationRequest request : requests) {
                 if (request.getStatus() != RequestStatus.PENDING) {
                     throw new ConflictException("Можно изменить статус только у заявок в ожидании");
                 }
                 request.setStatus(RequestStatus.CONFIRMED);
+                newlyConfirmed.add(request);
                 confirmedCount++;
             }
             event.setConfirmedRequests(confirmedCount);
             eventRepository.save(event);
             requestRepository.saveAll(requests);
+            newlyConfirmed.forEach(this::collectConfirmedRegistration);
 
             return EventRequestStatusUpdateResult.builder()
                     .confirmedRequests(requests.stream()
@@ -270,6 +278,7 @@ public class RequestServiceImpl implements RequestService {
 
         List<ParticipationRequestDto> confirmed = new ArrayList<>();
         List<ParticipationRequestDto> rejected = new ArrayList<>();
+        List<ParticipationRequest> newlyConfirmed = new ArrayList<>();
 
         for (ParticipationRequest request : requests) {
             if (request.getStatus() != RequestStatus.PENDING) {
@@ -280,6 +289,7 @@ public class RequestServiceImpl implements RequestService {
                 if (confirmedCount < limit) {
                     request.setStatus(RequestStatus.CONFIRMED);
                     confirmedCount++;
+                    newlyConfirmed.add(request);
                     confirmed.add(requestMapper.toDto(request));
                 } else {
                     // Лимит достигнут, остальные отклоняем
@@ -296,6 +306,7 @@ public class RequestServiceImpl implements RequestService {
         event.setConfirmedRequests(confirmedCount);
         eventRepository.save(event);
         requestRepository.saveAll(requests);
+        newlyConfirmed.forEach(this::collectConfirmedRegistration);
 
         log.info("Обновлены статусы заявок: подтверждено={}, отклонено={}",
                 confirmed.size(), rejected.size());
@@ -312,5 +323,9 @@ public class RequestServiceImpl implements RequestService {
         if (!userRepository.existsById(userId)) {
             throw new NotFoundException("Пользователь не найден: id=" + userId);
         }
+    }
+
+    private void collectConfirmedRegistration(ParticipationRequest request) {
+        userActionClient.collectRegister(request.getRequester().getId(), request.getEvent().getId());
     }
 }

@@ -37,6 +37,7 @@ public interface EventMapper {
     @Mapping(target = "state", ignore = true)
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "views", ignore = true)
+    @Mapping(target = "rating", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "moderationNote", ignore = true)
     @Mapping(target = "location", source = "location")
@@ -73,6 +74,7 @@ public interface EventMapper {
     @Mapping(target = "state", ignore = true)
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "views", ignore = true)
+    @Mapping(target = "rating", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "moderationNote", ignore = true)
     @Mapping(target = "location", source = "location")
@@ -89,6 +91,7 @@ public interface EventMapper {
     @Mapping(target = "state", ignore = true)
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "views", ignore = true)
+    @Mapping(target = "rating", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "location", source = "location")
     void updateEventFromAdminRequest(UpdateEventAdminRequest dto, @MappingTarget Event event);

@@ -33,7 +33,8 @@ class EventShortDtoTest {
                 .category(category)
                 .paid(true)
                 .confirmedRequests(25L)
-                .views(1000L)
+                .rating(1000.0d)
+                .views(42L)
                 .build();
 
         // Assert
@@ -41,7 +42,8 @@ class EventShortDtoTest {
         assertThat(dto.getTitle()).isEqualTo("Test Event");
         assertThat(dto.getEventDate()).isEqualTo(eventDate);
         assertThat(dto.getConfirmedRequests()).isEqualTo(25L);
-        assertThat(dto.getViews()).isEqualTo(1000L);
+        assertThat(dto.getRating()).isEqualTo(1000.0d);
+        assertThat(dto.getViews()).isEqualTo(42L);
     }
 
     @Test
@@ -64,13 +66,15 @@ class EventShortDtoTest {
         // Action
         dto.setId(1L);
         dto.setTitle("Setter Event");
-        dto.setViews(500L);
+        dto.setRating(500.0d);
+        dto.setViews(12L);
         dto.setPaid(false);
 
         // Assert
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getTitle()).isEqualTo("Setter Event");
-        assertThat(dto.getViews()).isEqualTo(500L);
+        assertThat(dto.getRating()).isEqualTo(500.0d);
+        assertThat(dto.getViews()).isEqualTo(12L);
         assertThat(dto.getPaid()).isFalse();
     }
 }

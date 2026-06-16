@@ -101,7 +101,12 @@ public class EventFullDto {
     private String title;
 
     /**
-     * View count.
+     * Recommendation rating.
+     */
+    private Double rating;
+
+    /**
+     * Number of unique public views.
      */
     private Long views;
 

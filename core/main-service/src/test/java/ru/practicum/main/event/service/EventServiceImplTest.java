@@ -1,5 +1,6 @@
 package ru.practicum.main.event.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import ru.practicum.client.StatsClient;
+import ru.practicum.client.recommendation.RecommendationsClient;
+import ru.practicum.client.recommendation.UserActionClient;
 import ru.practicum.main.category.model.Category;
 import ru.practicum.main.category.repository.CategoryRepository;
 import ru.practicum.main.event.dto.*;
@@ -32,12 +35,13 @@ import ru.practicum.main.moderation.mapper.EventModerationLogMapper;
 import ru.practicum.main.moderation.model.EventModerationLog;
 import ru.practicum.main.moderation.repository.EventModerationLogRepository;
 import ru.practicum.main.moderation.status.EventModerationAction;
-import ru.practicum.main.rating.repository.EventRatingRepository;
+import ru.practicum.main.request.repository.RequestRepository;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,16 +73,22 @@ class EventServiceImplTest {
     private StatsClient statsClient;
 
     @Mock
-    private EventModerationLogRepository eventModerationLogRepository;
+    private RecommendationsClient recommendationsClient;
+
+    @Mock
+    private UserActionClient userActionClient;
 
     @Mock
     private EventModerationLogMapper eventModerationLogMapper;
 
     @Mock
-    private EventRatingRepository eventRatingRepository;
+    private EventModerationLogRepository eventModerationLogRepository;
 
     @Mock
     private ManagedLocationRepository managedLocationRepository;
+
+    @Mock
+    private RequestRepository requestRepository;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -122,6 +132,9 @@ class EventServiceImplTest {
         testEvent.setRequestModeration(true);
         testEvent.setConfirmedRequests(0L);
         testEvent.setViews(0L);
+        testEvent.setRating(0.0d);
+        lenient().when(statsClient.getStats(any())).thenReturn(List.of());
+        lenient().when(recommendationsClient.getInteractionsCount(any())).thenReturn(Map.of());
 
         testEventFullDto = EventFullDto.builder()
                 .id(1L)
@@ -608,11 +621,28 @@ class EventServiceImplTest {
             when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
 
             // Action
-            EventFullDto result = eventService.getPublishedEventById(1L, mock(jakarta.servlet.http.HttpServletRequest.class));
+            when(userRepository.existsById(1L)).thenReturn(true);
+
+            EventFullDto result = eventService.getPublishedEventById(1L, 1L, null);
 
             // Assert
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("Должен вернуть опубликованное событие без пользовательского заголовка")
+        void getPublishedEventById_WithoutUserHeader_DoesNotRequireUser() {
+            testEvent.setState(EventState.PUBLISHED);
+            when(eventRepository.findByIdAndState(1L, EventState.PUBLISHED))
+                    .thenReturn(Optional.of(testEvent));
+            when(eventMapper.toEventFullDto(any(Event.class))).thenReturn(testEventFullDto);
+
+            EventFullDto result = eventService.getPublishedEventById(1L, null, mock(HttpServletRequest.class));
+
+            assertThat(result).isNotNull();
+            verify(userRepository, never()).existsById(anyLong());
+            verify(userActionClient, never()).collectView(anyLong(), anyLong());
         }
 
         @Test
@@ -623,8 +653,7 @@ class EventServiceImplTest {
                     .thenReturn(Optional.empty());
 
             // Action and assert
-            assertThatThrownBy(() -> eventService.getPublishedEventById(1L,
-                    mock(jakarta.servlet.http.HttpServletRequest.class)))
+            assertThatThrownBy(() -> eventService.getPublishedEventById(1L, 1L, null))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Событие не найдено");
         }
@@ -709,8 +738,7 @@ class EventServiceImplTest {
         @DisplayName("Должен выбросить ValidationException при некорректном size для searchPublicEvents")
         void searchPublicEvents_InvalidSize_ThrowsException(int size) {
             assertThatThrownBy(() -> eventService.searchPublicEvents(
-                    null, null, null, null, null, false, null, 0, size,
-                    mock(jakarta.servlet.http.HttpServletRequest.class)))
+                    null, null, null, null, null, false, null, 0, size, null))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("size must be");
         }
@@ -720,8 +748,7 @@ class EventServiceImplTest {
         @DisplayName("Должен выбросить ValidationException при некорректном from для searchPublicEvents")
         void searchPublicEvents_InvalidFrom_ThrowsException(int from) {
             assertThatThrownBy(() -> eventService.searchPublicEvents(
-                    null, null, null, null, null, false, null, from, 10,
-                    mock(jakarta.servlet.http.HttpServletRequest.class)))
+                    null, null, null, null, null, false, null, from, 10, null))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("from must be");
         }
@@ -750,8 +777,7 @@ class EventServiceImplTest {
                     5.0,
                     "EVENT_DATE",
                     0,
-                    10,
-                    mock(jakarta.servlet.http.HttpServletRequest.class)))
+                    10))
                     .isInstanceOf(NotFoundException.class)
                     .hasMessageContaining("Активная локация не найдена");
         }
@@ -783,8 +809,7 @@ class EventServiceImplTest {
                     null,
                     "EVENT_DATE",
                     0,
-                    10,
-                    mock(jakarta.servlet.http.HttpServletRequest.class)
+                    10
             );
 
             assertThat(result).hasSize(1);

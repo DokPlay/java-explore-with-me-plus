@@ -10,10 +10,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.practicum.main.common.EwmHeaders;
 import ru.practicum.main.event.dto.EventFullDto;
 import ru.practicum.main.event.dto.EventShortDto;
 import ru.practicum.main.event.service.EventService;
@@ -57,14 +60,39 @@ public class PublicEventController {
     }
 
     /**
+     * Returns personalized event recommendations.
+     */
+    @GetMapping("/recommendations")
+    @ResponseStatus(HttpStatus.OK)
+    public List<EventShortDto> getRecommendations(
+            @RequestHeader(EwmHeaders.USER_ID) Long userId,
+            @RequestParam(defaultValue = "10") @Positive int maxResults) {
+        log.info("GET /events/recommendations - Рекомендации для пользователя userId={}", userId);
+        return eventService.getRecommendations(userId, maxResults);
+    }
+
+    /**
      * Returns a published event by identifier.
      */
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public EventFullDto getEventById(
             @PathVariable Long id,
+            @RequestHeader(value = EwmHeaders.USER_ID, required = false) Long userId,
             HttpServletRequest request) {
-        log.info("GET /events/{} - Получение опубликованного события", id);
-        return eventService.getPublishedEventById(id, request);
+        log.info("GET /events/{} - Получение опубликованного события пользователем userId={}", id, userId);
+        return eventService.getPublishedEventById(id, userId, request);
+    }
+
+    /**
+     * Sends a like action for a visited event.
+     */
+    @PutMapping("/{eventId}/like")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void likeEvent(
+            @PathVariable Long eventId,
+            @RequestHeader(EwmHeaders.USER_ID) Long userId) {
+        log.info("PUT /events/{}/like - Лайк пользователя userId={}", eventId, userId);
+        eventService.likeEvent(userId, eventId);
     }
 }

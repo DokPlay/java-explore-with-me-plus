@@ -62,7 +62,8 @@ class EventMapperTest {
         event.setParticipantLimit(100);
         event.setRequestModeration(true);
         event.setConfirmedRequests(10L);
-        event.setViews(50L);
+        event.setViews(123L);
+        event.setRating(50.0d);
     }
 
     @Test
@@ -82,7 +83,8 @@ class EventMapperTest {
         assertThat(result.getParticipantLimit()).isEqualTo(100);
         assertThat(result.getRequestModeration()).isTrue();
         assertThat(result.getConfirmedRequests()).isEqualTo(10L);
-        assertThat(result.getViews()).isEqualTo(50L);
+        assertThat(result.getViews()).isEqualTo(123L);
+        assertThat(result.getRating()).isEqualTo(50.0d);
 
         // Assert nested objects
         assertThat(result.getCategory()).isNotNull();
@@ -111,7 +113,8 @@ class EventMapperTest {
         assertThat(result.getAnnotation()).isEqualTo("Test annotation for event");
         assertThat(result.getPaid()).isTrue();
         assertThat(result.getConfirmedRequests()).isEqualTo(10L);
-        assertThat(result.getViews()).isEqualTo(50L);
+        assertThat(result.getViews()).isEqualTo(123L);
+        assertThat(result.getRating()).isEqualTo(50.0d);
 
         // Assert nested objects
         assertThat(result.getCategory()).isNotNull();
@@ -135,6 +138,7 @@ class EventMapperTest {
         event2.setPaid(false);
         event2.setConfirmedRequests(5L);
         event2.setViews(25L);
+        event2.setRating(25.0d);
 
         List<Event> events = List.of(event, event2);
 

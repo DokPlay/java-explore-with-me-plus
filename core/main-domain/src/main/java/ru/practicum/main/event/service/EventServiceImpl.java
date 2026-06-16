@@ -9,6 +9,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.client.StatsClient;
+import ru.practicum.client.recommendation.RecommendationsClient;
+import ru.practicum.client.recommendation.UserActionClient;
+import ru.practicum.client.recommendation.dto.RecommendedEventDto;
 import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.StatsRequestDto;
 import ru.practicum.dto.ViewStatsDto;
@@ -33,8 +36,8 @@ import ru.practicum.main.moderation.mapper.EventModerationLogMapper;
 import ru.practicum.main.moderation.model.EventModerationLog;
 import ru.practicum.main.moderation.repository.EventModerationLogRepository;
 import ru.practicum.main.moderation.status.EventModerationAction;
-import ru.practicum.main.rating.repository.EventRatingRepository;
-import ru.practicum.main.rating.status.VoteType;
+import ru.practicum.main.request.repository.RequestRepository;
+import ru.practicum.main.request.status.RequestStatus;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UserRepository;
 import ru.practicum.main.util.PaginationValidator;
@@ -43,6 +46,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -52,7 +56,7 @@ import java.util.stream.Collectors;
  * <ul>
  *     <li>CRUD operations on events</li>
  *     <li>Event lifecycle (PENDING → PUBLISHED/CANCELED)</li>
- *     <li>Integration with Stats Service for view statistics</li>
+ *     <li>Integration with Analyzer and Collector for recommendation actions</li>
  *     <li>Business-rule validation (time before event, access rights)</li>
  * </ul>
  *
@@ -74,7 +78,6 @@ import java.util.stream.Collectors;
  * @author ExploreWithMe Team
  * @version 1.0
  * @see EventService
- * @see ru.practicum.client.StatsClient
  */
 @Service
 @RequiredArgsConstructor
@@ -82,18 +85,17 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
 
-    /** Application name for stats */
-    private static final String APP_NAME = "ewm-main-service";
-
     /** Minimum time before the event for a user (hours) */
     private static final int HOURS_BEFORE_EVENT_USER = 2;
 
     /** Minimum time before the event for admin publication (hours) */
     private static final int HOURS_BEFORE_EVENT_ADMIN = 1;
 
+    private static final String APP_NAME = "ewm-main-service";
     private static final String DEFAULT_REJECT_REASON = "Отклонено администратором";
     private static final String SORT_VIEWS = "VIEWS";
     private static final String SORT_RATING = "RATING";
+    private static final int DEFAULT_RECOMMENDATIONS_LIMIT = 10;
     private static final double KM_PER_LATITUDE_DEGREE = 111.32d;
     private static final double EARTH_RADIUS_KM = 6371.0088d;
 
@@ -102,10 +104,12 @@ public class EventServiceImpl implements EventService {
     private final CategoryRepository categoryRepository;
     private final EventMapper eventMapper;
     private final StatsClient statsClient;
+    private final RecommendationsClient recommendationsClient;
+    private final UserActionClient userActionClient;
     private final EventModerationLogRepository eventModerationLogRepository;
     private final EventModerationLogMapper eventModerationLogMapper;
-    private final EventRatingRepository eventRatingRepository;
     private final ManagedLocationRepository managedLocationRepository;
+    private final RequestRepository requestRepository;
 
     // Private API — operations for authorized users
 
@@ -117,7 +121,7 @@ public class EventServiceImpl implements EventService {
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
         List<Event> events = eventRepository.findAllByInitiatorId(userId, pageable).getContent();
-        enrichEventsWithViews(events);
+        enrichEventsWithMetrics(events);
 
         return eventMapper.toEventShortDtoList(events);
     }
@@ -155,7 +159,7 @@ public class EventServiceImpl implements EventService {
 
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
-        enrichEventWithViews(event);
+        enrichEventWithMetrics(event);
 
         return eventMapper.toEventFullDto(event);
     }
@@ -217,7 +221,7 @@ public class EventServiceImpl implements EventService {
 
         List<Event> events = eventRepository.findEventsForAdmin(
                 users, states, categories, rangeStart, rangeEnd, pageable).getContent();
-        enrichEventsWithViews(events);
+        enrichEventsWithMetrics(events);
 
         return eventMapper.toEventFullDtoList(events);
     }
@@ -336,6 +340,7 @@ public class EventServiceImpl implements EventService {
 
         boolean sortByViews = isSortByViews(sort);
         boolean sortByRating = isSortByRating(sort);
+        saveHit(request);
 
         // Для сортировки по просмотрам/рейтингу используем ограниченную выборку + пагинацию в БД
         if (sortByViews || sortByRating) {
@@ -347,7 +352,7 @@ public class EventServiceImpl implements EventService {
                     text, categories, paid, start, end,
                     onlyAvailable != null && onlyAvailable, fetchPageable).getContent();
 
-            enrichEventsWithViews(events);
+            enrichEventsWithMetrics(events);
 
             // Сортировка с учетом views/rating
             events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate));
@@ -363,34 +368,81 @@ public class EventServiceImpl implements EventService {
                     text, categories, paid, start, end,
                     onlyAvailable != null && onlyAvailable, pageable).getContent();
 
-            saveHit(request);
-            enrichEventsWithViews(events);
+            enrichEventsWithMetrics(events);
 
             return eventMapper.toEventShortDtoList(events);
         }
     }
 
     @Override
-    public EventFullDto getPublishedEventById(Long eventId, HttpServletRequest request) {
+    public EventFullDto getPublishedEventById(Long eventId, Long userId, HttpServletRequest request) {
         log.info("Получение опубликованного события: id={}", eventId);
 
         Event event = eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
 
-        // Record the request in stats
         saveHit(request);
+        if (userId != null) {
+            validateUserExists(userId);
+            userActionClient.collectView(userId, eventId);
+        }
 
-        // Update event views from stats
-        enrichEventWithViews(event);
+        enrichEventWithMetrics(event);
 
         return eventMapper.toEventFullDto(event);
+    }
+
+    @Override
+    public List<EventShortDto> getRecommendations(Long userId, int maxResults) {
+        log.info("Получение рекомендаций пользователя userId={}, maxResults={}", userId, maxResults);
+        validateUserExists(userId);
+
+        int limit = maxResults > 0 ? maxResults : DEFAULT_RECOMMENDATIONS_LIMIT;
+        List<Long> recommendedIds = recommendationsClient.getRecommendationsForUser(userId, limit).stream()
+                .map(RecommendedEventDto::eventId)
+                .toList();
+        if (recommendedIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Event> eventsById = eventRepository.findAllById(recommendedIds).stream()
+                .filter(event -> event.getState() == EventState.PUBLISHED)
+                .collect(Collectors.toMap(Event::getId, Function.identity()));
+
+        List<Event> events = recommendedIds.stream()
+                .map(eventsById::get)
+                .filter(event -> event != null)
+                .toList();
+        enrichEventsWithMetrics(events);
+        return eventMapper.toEventShortDtoList(events);
+    }
+
+    @Override
+    @Transactional
+    public void likeEvent(Long userId, Long eventId) {
+        log.info("Лайк мероприятия eventId={} пользователем userId={}", eventId, userId);
+        validateUserExists(userId);
+
+        Event event = eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
+                .orElseThrow(() -> new NotFoundException("Опубликованное событие не найдено: id=" + eventId));
+        if (event.getInitiator().getId().equals(userId)) {
+            throw new ConflictException("Инициатор события не может лайкать своё мероприятие");
+        }
+
+        boolean visited = requestRepository.existsByEventIdAndRequesterIdAndStatus(
+                eventId, userId, RequestStatus.CONFIRMED);
+        if (!visited) {
+            throw new ValidationException("Лайкать можно только посещённые мероприятия");
+        }
+
+        userActionClient.collectLike(userId, eventId);
     }
 
     @Override
     public EventFullDto getEventById(Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено: id=" + eventId));
-        enrichEventWithViews(event);
+        enrichEventWithMetrics(event);
         return eventMapper.toEventFullDto(event);
     }
 
@@ -427,7 +479,7 @@ public class EventServiceImpl implements EventService {
                     )
                     .getContent();
 
-            enrichEventsWithViews(events);
+            enrichEventsWithMetrics(events);
 
             events = sortEvents(events, sort, Comparator.comparing(Event::getEventDate).reversed());
             events = applyManualPagination(events, from, size);
@@ -447,7 +499,7 @@ public class EventServiceImpl implements EventService {
                     )
                     .getContent();
 
-            enrichEventsWithViews(events);
+            enrichEventsWithMetrics(events);
 
             return eventMapper.toEventShortDtoList(events);
         }
@@ -458,8 +510,7 @@ public class EventServiceImpl implements EventService {
                                                             Double radiusKm,
                                                             String sort,
                                                             int from,
-                                                            int size,
-                                                            HttpServletRequest request) {
+                                                            int size) {
         PaginationValidator.validatePagination(from, size);
 
         ManagedLocation location = managedLocationRepository.findByIdAndActiveTrue(locationId)
@@ -493,8 +544,7 @@ public class EventServiceImpl implements EventService {
                 .limit(size) // Ограничиваем результат
                 .toList();
 
-        saveHit(request);
-        enrichEventsWithViews(nearbyEvents);
+        enrichEventsWithMetrics(nearbyEvents);
 
         // Если нужно больше событий и мы не набрали достаточно
         if (nearbyEvents.size() < size && pagedEvents.size() == pageSize) {
@@ -524,8 +574,11 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-
     private void saveHit(HttpServletRequest request) {
+        if (request == null) {
+            return;
+        }
+
         try {
             EndpointHitDto hit = EndpointHitDto.builder()
                     .app(APP_NAME)
@@ -547,7 +600,7 @@ public class EventServiceImpl implements EventService {
 
         try {
             List<String> uris = events.stream()
-                    .map(e -> "/events/" + e.getId())
+                    .map(event -> "/events/" + event.getId())
                     .collect(Collectors.toList());
 
             LocalDateTime start = events.stream()
@@ -562,12 +615,15 @@ public class EventServiceImpl implements EventService {
             requestDto.setUnique(true);
 
             List<ViewStatsDto> stats = statsClient.getStats(requestDto);
+            if (stats == null) {
+                return Map.of();
+            }
 
             return stats.stream()
                     .collect(Collectors.toMap(
-                            s -> extractEventIdFromUri(s.getUri()),
+                            stat -> extractEventIdFromUri(stat.getUri()),
                             ViewStatsDto::getHits,
-                            (a, b) -> a));
+                            (left, right) -> left));
         } catch (Exception e) {
             log.warn("Ошибка при получении статистики: {}", e.getMessage());
             return Map.of();
@@ -583,12 +639,35 @@ public class EventServiceImpl implements EventService {
         if (events.isEmpty()) {
             return;
         }
-        Map<Long, Long> viewsMap = getViewsForEvents(events);
-        events.forEach(event -> event.setViews(viewsMap.getOrDefault(event.getId(), 0L)));
+
+        Map<Long, Long> viewsByEvent = getViewsForEvents(events);
+        events.forEach(event -> event.setViews(viewsByEvent.getOrDefault(event.getId(), 0L)));
     }
 
-    private void enrichEventWithViews(Event event) {
-        enrichEventsWithViews(List.of(event));
+    private void enrichEventsWithRating(List<Event> events) {
+        if (events.isEmpty()) {
+            return;
+        }
+
+        try {
+            List<Long> eventIds = events.stream()
+                    .map(Event::getId)
+                    .toList();
+            Map<Long, Double> ratingByEvent = recommendationsClient.getInteractionsCount(eventIds);
+            events.forEach(event -> event.setRating(ratingByEvent.getOrDefault(event.getId(), 0.0d)));
+        } catch (Exception e) {
+            log.warn("Ошибка при получении рейтинга рекомендаций: {}", e.getMessage());
+            events.forEach(event -> event.setRating(0.0d));
+        }
+    }
+
+    private void enrichEventsWithMetrics(List<Event> events) {
+        enrichEventsWithViews(events);
+        enrichEventsWithRating(events);
+    }
+
+    private void enrichEventWithMetrics(Event event) {
+        enrichEventsWithMetrics(List.of(event));
     }
 
     private List<Event> sortEvents(List<Event> events, String sort, Comparator<Event> defaultComparator) {
@@ -607,44 +686,22 @@ public class EventServiceImpl implements EventService {
         }
 
         if (isSortByRating(sort)) {
-            Map<Long, Long> scoreMap = getRatingScoresForEvents(events);
             return events.stream()
-                    .sorted(Comparator
-                            .comparing(
-                                    (Event event) -> scoreMap.getOrDefault(event.getId(), 0L),
-                                    Comparator.reverseOrder()
+                    .sorted(Comparator.comparing(
+                                    Event::getRating,
+                                    Comparator.nullsLast(Comparator.reverseOrder())
                             )
                             .thenComparing(
                                     Event::getViews,
                                     Comparator.nullsLast(Comparator.reverseOrder())
                             )
-                            .thenComparing(
-                                    Event::getEventDate,
-                                    Comparator.nullsLast(Comparator.naturalOrder())
-                            ))
+                            .thenComparing(Event::getEventDate, Comparator.nullsLast(Comparator.naturalOrder())))
                     .toList();
         }
 
         return events.stream()
                 .sorted(defaultComparator)
                 .toList();
-    }
-
-    private Map<Long, Long> getRatingScoresForEvents(List<Event> events) {
-        if (events.isEmpty()) {
-            return Map.of();
-        }
-
-        List<Long> eventIds = events.stream()
-                .map(Event::getId)
-                .toList();
-
-        return eventRatingRepository.findScoresByEventIds(eventIds, VoteType.LIKE, VoteType.DISLIKE)
-                .stream()
-                .collect(Collectors.toMap(
-                        EventRatingRepository.EventScoreProjection::getEventId,
-                        score -> score.getScore() == null ? 0L : score.getScore().longValue()
-                ));
     }
 
     private boolean isSortByViews(String sort) {

@@ -11,7 +11,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         "ru.practicum.requestservice",
         "ru.practicum.main.exception",
         "ru.practicum.main.request",
-        "ru.practicum.main.util"
+        "ru.practicum.main.util",
+        "ru.practicum.client"
 })
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = "ru.practicum.requestservice.client")

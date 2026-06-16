@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -139,10 +140,18 @@ public class Event {
     private String title;
 
     /**
-     * View count.
+     * Unique public views loaded from Stats Service.
      */
+    @Column
     @Builder.Default
     private Long views = 0L;
+
+    /**
+     * Recommendation rating loaded from Analyzer.
+     */
+    @Transient
+    @Builder.Default
+    private Double rating = 0.0d;
 
     /**
      * Optimistic-lock field to protect concurrent updates.
